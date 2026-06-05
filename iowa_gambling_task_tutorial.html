@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iowa Gambling Task — Research Simulation</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Georgia', serif;
+    background: #0f1117;
+    color: #e8e4d9;
+    min-height: 100vh;
+  }
+
+  /* ── Layout ── */
+  .shell {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    background: #1a1d26;
+    border-right: 1px solid #2a2d3a;
+    padding: 2rem 1.5rem;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .sidebar-title {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #6b7280;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #2a2d3a;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0.6rem 0.75rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-size: 13px;
+    color: #9ca3af;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+  }
+
+  .nav-item:hover { background: #252836; color: #e8e4d9; }
+  .nav-item.active { background: #252836; color: #c9a96e; }
+
+  .nav-num {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #2a2d3a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+    color: #6b7280;
+  }
+
+  .nav-item.active .nav-num {
+    background: #c9a96e22;
+    color: #c9a96e;
+  }
+
+  .nav-item.done .nav-num {
+    background: #1e3a2f;
+    color: #4ade80;
+  }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid #2a2d3a;
+    font-size: 11px;
+    color: #4b5563;
+    line-height: 1.6;
+  }
+
+  /* ── Main ── */
+  .main {
+    padding: 3rem;
+    max-width: 860px;
+  }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ── Typography ── */
+  h1 { font-size: 2rem; font-weight: normal; color: #e8e4d9; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+  h2 { font-size: 1.3rem; font-weight: normal; color: #c9a96e; margin: 2rem 0 1rem; }
+  h3 { font-size: 1rem; color: #9ca3af; font-weight: normal; margin: 1.5rem 0 0.5rem; letter-spacing: 0.04em; text-transform: uppercase; font-size: 11px; }
+  p { font-size: 15px; line-height: 1.8; color: #b8b4aa; margin-bottom: 1rem; }
+  strong { color: #e8e4d9; font-weight: normal; }
+
+  .subtitle { font-size: 15px; color: #6b7280; margin-bottom: 2.5rem; }
+
+  /* ── Tutorial box ── */
+  .tutorial-box {
+    background: #1a1d26;
+    border: 1px solid #2a2d3a;
+    border-left: 3px solid #c9a96e;
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+  }
+
+  .tutorial-box .label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #c9a96e;
+    margin-bottom: 0.5rem;
+  }
+
+  .tutorial-box p { margin-bottom: 0; font-size: 14px; }
+
+  /* ── Code block ── */
+  .code-block {
+    background: #0d1117;
+    border: 1px solid #2a2d3a;
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin: 1rem 0;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .code-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #4b5563;
+    margin-bottom: 0.75rem;
+  }
+
+  .kw { color: #c9a96e; }
+  .fn { color: #7dd3fc; }
+  .str { color: #86efac; }
+  .cm { color: #4b5563; font-style: italic; }
+  .num { color: #f9a8d4; }
+  .var { color: #e8e4d9; }
+
+  /* ── Cards ── */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+
+  .card {
+    background: #1a1d26;
+    border: 1px solid #2a2d3a;
+    border-radius: 10px;
+    padding: 1.25rem;
+  }
+
+  .card-label { font-size: 11px; color: #6b7280; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.5rem; }
+  .card-value { font-size: 1.6rem; color: #e8e4d9; }
+  .card-sub { font-size: 12px; color: #4b5563; margin-top: 0.25rem; }
+
+  /* ── Deck display ── */
+  .decks {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin: 2rem 0;
+  }
+
+  .deck-card {
+    background: #1a1d26;
+    border: 2px solid #2a2d3a;
+    border-radius: 12px;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+
+  .deck-card:hover { border-color: #c9a96e44; background: #1f2235; }
+  .deck-card.selected { border-color: #c9a96e; }
+  .deck-card.flipped { border-color: #4ade8033; }
+
+  .deck-letter { font-size: 2rem; color: #c9a96e; margin-bottom: 0.5rem; }
+  .deck-desc { font-size: 11px; color: #6b7280; line-height: 1.5; }
+  .deck-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #1e3a2f;
+    color: #4ade80;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid #4ade8033;
+  }
+
+  .deck-badge.risky {
+    background: #3a1e1e;
+    color: #f87171;
+    border-color: #f8717133;
+  }
+
+  /* ── Profile editor ── */
+  .profile-card {
+    background: #1a1d26;
+    border: 1px solid #2a2d3a;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+  }
+
+  .profile-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #2a2d3a;
+  }
+
+  .profile-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .avatar-neutral { background: #1e2a3a; color: #7dd3fc; }
+  .avatar-manic { background: #3a2a1e; color: #fbbf24; }
+  .avatar-depressive { background: #1e1e3a; color: #a78bfa; }
+
+  .profile-name { font-size: 15px; color: #e8e4d9; }
+  .profile-type { font-size: 12px; color: #6b7280; }
+
+  .trait-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 0.75rem;
+  }
+
+  .trait-label { font-size: 12px; color: #9ca3af; width: 140px; flex-shrink: 0; }
+
+  .trait-bar-wrap { flex: 1; height: 6px; background: #2a2d3a; border-radius: 3px; overflow: hidden; }
+
+  .trait-bar { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+  .bar-blue { background: #7dd3fc; }
+  .bar-amber { background: #fbbf24; }
+  .bar-red { background: #f87171; }
+  .bar-purple { background: #a78bfa; }
+  .bar-green { background: #4ade80; }
+
+  .trait-val { font-size: 12px; color: #6b7280; width: 32px; text-align: right; }
+
+  /* ── Simulation runner ── */
+  .sim-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 1.5rem 0;
+    flex-wrap: wrap;
+  }
+
+  select, input[type=number] {
+    background: #1a1d26;
+    border: 1px solid #2a2d3a;
+    color: #e8e4d9;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+
+  select:focus, input:focus { outline: 1px solid #c9a96e44; }
+
+  .btn {
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    border: 1px solid #2a2d3a;
+    background: #252836;
+    color: #e8e4d9;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+
+  .btn:hover { background: #2e3148; border-color: #c9a96e44; }
+
+  .btn-primary {
+    background: #c9a96e22;
+    border-color: #c9a96e44;
+    color: #c9a96e;
+  }
+
+  .btn-primary:hover { background: #c9a96e33; }
+
+  .btn-danger {
+    background: #3a1e1e22;
+    border-color: #f8717133;
+    color: #f87171;
+  }
+
+  /* ── Log ── */
+  .log-wrap {
+    background: #0d1117;
+    border: 1px solid #2a2d3a;
+    border-radius: 8px;
+    height: 260px;
+    overflow-y: auto;
+    padding: 1rem;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    margin: 1rem 0;
+  }
+
+  .log-line { color: #6b7280; line-height: 1.8; }
+  .log-line.good { color: #4ade80; }
+  .log-line.bad { color: #f87171; }
+  .log-line.info { color: #7dd3fc; }
+  .log-line.head { color: #c9a96e; }
+
+  /* ── Results table ── */
+  .results-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 1rem 0;
+  }
+
+  .results-table th {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #2a2d3a;
+    color: #6b7280;
+    font-weight: normal;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .results-table td {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid #1a1d2633;
+    color: #b8b4aa;
+  }
+
+  .results-table tr:hover td { background: #1a1d2644; }
+
+  /* ── Progress bar ── */
+  .progress-wrap { background: #2a2d3a; border-radius: 4px; height: 6px; margin: 0.5rem 0; }
+  .progress-bar { height: 100%; border-radius: 4px; background: #c9a96e; transition: width 0.3s; }
+
+  /* ── Prompt preview ── */
+  .prompt-preview {
+    background: #0d1117;
+    border: 1px solid #2a2d3a;
+    border-radius: 8px;
+    padding: 1.25rem;
+    font-size: 13px;
+    line-height: 1.8;
+    color: #9ca3af;
+    margin: 1rem 0;
+    white-space: pre-wrap;
+  }
+
+  .prompt-preview em { color: #c9a96e; font-style: normal; }
+
+  /* ── Step nav ── */
+  .step-nav {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #2a2d3a;
+  }
+
+  .spacer { flex: 1; }
+
+  /* ── Chart canvas ── */
+  canvas { max-width: 100%; }
+
+  /* ── Highlight ── */
+  .highlight { color: #c9a96e; }
+  .muted { color: #6b7280; font-size: 13px; }
+
+  .divider { border: none; border-top: 1px solid #2a2d3a; margin: 2rem 0; }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    margin-right: 4px;
+  }
+
+  .tag-neutral { background: #1e2a3a; color: #7dd3fc; border: 1px solid #7dd3fc22; }
+  .tag-manic { background: #3a2a1e; color: #fbbf24; border: 1px solid #fbbf2422; }
+  .tag-depressive { background: #1e1e3a; color: #a78bfa; border: 1px solid #a78bfa22; }
+
+  .warn-box {
+    background: #3a2a1e22;
+    border: 1px solid #fbbf2422;
+    border-left: 3px solid #fbbf24;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+    font-size: 13px;
+    color: #b8b4aa;
+  }
+
+  .warn-box .wlabel { color: #fbbf24; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.4rem; }
+
+  /* ── Export ── */
+  #export-btn { display: none; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+<!-- ══ SIDEBAR ══ -->
+<nav class="sidebar">
+  <div class="sidebar-title">Iowa Gambling Task<br>Research Simulation</div>
+
+  <button class="nav-item active" onclick="goTo(0)" id="nav-0">
+    <span class="nav-num">1</span> What is the IGT?
+  </button>
+  <button class="nav-item" onclick="goTo(1)" id="nav-1">
+    <span class="nav-num">2</span> The four decks
+  </button>
+  <button class="nav-item" onclick="goTo(2)" id="nav-2">
+    <span class="nav-num">3</span> Patient profiles
+  </button>
+  <button class="nav-item" onclick="goTo(3)" id="nav-3">
+    <span class="nav-num">4</span> How the AI prompt works
+  </button>
+  <button class="nav-item" onclick="goTo(4)" id="nav-4">
+    <span class="nav-num">5</span> Run a simulation
+  </button>
+  <button class="nav-item" onclick="goTo(5)" id="nav-5">
+    <span class="nav-num">6</span> Read your results
+  </button>
+  <button class="nav-item" onclick="goTo(6)" id="nav-6">
+    <span class="nav-num">7</span> Export & next steps
+  </button>
+
+  <div class="sidebar-footer">
+    Built for Ceren's research fellowship.<br>
+    All simulations run locally — no data leaves your computer.
+  </div>
+</nav>
+
+<!-- ══ MAIN ══ -->
+<main class="main">
+
+  <!-- ─ SECTION 0: What is the IGT ─ -->
+  <section class="section active" id="sec-0">
+    <h1>Iowa Gambling Task</h1>
+    <p class="subtitle">A research simulation framework — with step-by-step explanations</p>
+
+    <div class="tutorial-box">
+      <div class="label">What you're learning here</div>
+      <p>This tool walks you through exactly how the Iowa Gambling Task works, how AI patient profiles are structured, and how to run and read a simulation. Each section builds on the last. You don't need any coding experience to follow along.</p>
+    </div>
+
+    <h2>What is the Iowa Gambling Task?</h2>
+    <p>The Iowa Gambling Task (IGT) was created by neuroscientist <strong>Antonio Damasio</strong> and his team in the 1990s. It's one of the most widely used tests in psychology and neuroscience for studying decision-making under uncertainty.</p>
+
+    <p>The basic idea: a participant sits in front of four decks of cards labeled <strong>A, B, C, and D</strong>. They don't know anything about the decks at first. Over 100 trials, they pick one card at a time. Each card either gives them money, takes money away, or both. The goal is to end up with as much money as possible.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-label">Total trials</div>
+        <div class="card-value">100</div>
+        <div class="card-sub">card choices per run</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Starting money</div>
+        <div class="card-value">$2,000</div>
+        <div class="card-sub">hypothetical loan</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Decks</div>
+        <div class="card-value">4</div>
+        <div class="card-sub">A, B, C, D</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Key measure</div>
+        <div class="card-value">Risk</div>
+        <div class="card-sub">safe vs. risky choices</div>
+      </div>
+    </div>
+
+    <h2>Why does this matter for your research?</h2>
+    <p>Research shows that people in a <strong>manic episode</strong> tend to favor high-reward, high-risk choices — they keep picking from the "bad" decks even as they lose money. People in a <strong>depressive episode</strong> often show the opposite pattern: they become overly cautious, avoid all risk, and sometimes fail to learn from positive feedback at all.</p>
+
+    <p>By simulating these patterns using AI, you can test whether a language model given a manic or depressive profile actually behaves differently on the task — and whether those differences match what real clinical studies found.</p>
+
+    <div class="warn-box">
+      <div class="wlabel">Important research note</div>
+      Your patient profiles must be based on published clinical descriptions, not AI-generated stereotypes. The simulation is only as valid as the profiles you put into it. We'll cover this in Section 3.
+    </div>
+
+    <div class="step-nav">
+      <span class="spacer"></span>
+      <button class="btn btn-primary" onclick="goTo(1)">Next: The four decks →</button>
+    </div>
+  </section>
+
+  <!-- ─ SECTION 1: The four decks ─ -->
+  <section class="section" id="sec-1">
+    <h1>The four decks</h1>
+    <p class="subtitle">Understanding what each deck means — and why participants pick what they pick</p>
+
+    <div class="tutorial-box">
+      <div class="label">Key concept</div>
+      <p>Two decks are "bad" (high reward but even higher penalties — you lose money over time). Two decks are "good" (modest reward, small penalties — you gain money over time). Healthy participants usually figure this out around trial 40–50. Certain conditions change this pattern.</p>
+    </div>
+
+    <div class="decks">
+      <div class="deck-card" id="deck-a" onclick="showDeck('a')">
+        <div class="deck-badge risky">Risky</div>
+        <div class="deck-letter">A</div>
+        <div class="deck-desc">High reward<br>Very high penalty</div>
+      </div>
+      <div class="deck-card" id="deck-b" onclick="showDeck('b')">
+        <div class="deck-badge risky">Risky</div>
+        <div class="deck-letter">B</div>
+        <div class="deck-desc">Very high reward<br>Very high penalty</div>
+      </div>
+      <div class="deck-card" id="deck-c" onclick="showDeck('c')">
+        <div class="deck-badge">Safe</div>
+        <div class="deck-letter">C</div>
+        <div class="deck-desc">Moderate reward<br>Low penalty</div>
+      </div>
+      <div class="deck-card" id="deck-d" onclick="showDeck('d')">
+        <div class="deck-badge">Safe</div>
+        <div class="deck-letter">D</div>
+        <div class="deck-desc">High reward<br>Moderate penalty</div>
+      </div>
+    </div>
+
+    <div id="deck-detail" style="display:none;">
+      <div class="profile-card" id="deck-info-box"></div>
+    </div>
+
+    <h2>Net value per 10 cards (what actually matters)</h2>
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th>Deck</th>
+          <th>Reward per card</th>
+          <th>Avg penalty per 10</th>
+          <th>Net per 10 cards</th>
+          <th>Type</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>A</strong></td><td>+$100</td><td>−$1,250</td><td style="color:#f87171">−$250</td><td><span class="tag tag-manic">Risky/Bad</span></td></tr>
+        <tr><td><strong>B</strong></td><td>+$100</td><td>−$1,250</td><td style="color:#f87171">−$250</td><td><span class="tag tag-manic">Risky/Bad</span></td></tr>
+        <tr><td><strong>C</strong></td><td>+$50</td><td>−$250</td><td style="color:#4ade80">+$250</td><td><span class="tag tag-neutral">Safe/Good</span></td></tr>
+        <tr><td><strong>D</strong></td><td>+$50</td><td>−$250</td><td style="color:#4ade80">+$250</td><td><span class="tag tag-neutral">Safe/Good</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2>What your simulation will measure</h2>
+    <p>These are the four <strong>dependent variables</strong> your study will track — the things you measure as the outcome:</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-label">Variable 1</div>
+        <div style="font-size:13px; color:#e8e4d9; margin-top:0.5rem;">Proportion of risky choices</div>
+        <div class="card-sub" style="margin-top:0.4rem;">% of picks from decks A or B</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Variable 2</div>
+        <div style="font-size:13px; color:#e8e4d9; margin-top:0.5rem;">Final score</div>
+        <div class="card-sub" style="margin-top:0.4rem;">Total money after 100 trials</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Variable 3</div>
+        <div style="font-size:13px; color:#e8e4d9; margin-top:0.5rem;">Learning over time</div>
+        <div class="card-sub" style="margin-top:0.4rem;">Does risk-taking change across trials?</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Variable 4</div>
+        <div style="font-size:13px; color:#e8e4d9; margin-top:0.5rem;">Deck choice pattern</div>
+        <div class="card-sub" style="margin-top:0.4rem;">How often each deck is selected</div>
+      </div>
+    </div>
+
+    <div class="step-nav">
+      <button class="btn" onclick="goTo(0)">← Back</button>
+      <span class="spacer"></span>
+      <button class="btn btn-primary" onclick="goTo(2)">Next: Patient profiles →</button>
+    </div>
+  </section>
+
+  <!-- ─ SECTION 2: Patient profiles ─ -->
+  <section class="section" id="sec-2">
+    <h1>Patient profiles</h1>
+    <p class="subtitle">The three groups your simulation will compare</p>
+
+    <div class="tutorial-box">
+      <div class="label">Your independent variable</div>
+      <p>The patient profile is the thing you're <em>changing</em> between groups. Everything else (the task, the number of trials, the reward structure) stays the same. This makes it an experimental design — you're isolating one variable to see its effect.</p>
+    </div>
+
+    <h2>Group 1 — Neutral (control)</h2>
+    <p class="muted">2 profiles · No bipolar disorder · Acts as your baseline comparison</p>
+
+    <div class="profile-card">
+      <div class="profile-header">
+        <div class="profile-avatar avatar-neutral">N</div>
+        <div>
+          <div class="profile-name">Neutral Profile Example</div>
+          <div class="profile-type"><span class="tag tag-neutral">Control</span> No diagnosed mood disorder</div>
+        </div>
+      </div>
+      <div class="trait-row"><span class="trait-label">Risk tolerance</span><div class="trait-bar-wrap"><div class="trait-bar bar-blue" style="width:50%"></div></div><span class="trait-val">50%</span></div>
+      <div class="trait-row"><span class="trait-label">Reward sensitivity</span><div class="trait-bar-wrap"><div class="trait-bar bar-blue" style="width:55%"></div></div><span class="trait-val">55%</span></div>
+      <div class="trait-row"><span class="trait-label">Loss sensitivity</span><div class="trait-bar-wrap"><div class="trait-bar bar-blue" style="width:50%"></div></div><span class="trait-val">50%</span></div>
+      <div class="trait-row"><span class="trait-label">Learning speed</span><div class="trait-bar-wrap"><div class="trait-bar bar-blue" style="width:65%"></div></div><span class="trait-val">65%</span></div>
+      <div class="trait-row"><span class="trait-label">Impulsivity</span><div class="trait-bar-wrap"><div class="trait-bar bar-blue" style="width:30%"></div></div><span class="trait-val">30%</span></div>
+    </div>
+
+    <h2>Group 2 — Manic episode</h2>
+    <p class="muted">2 profiles · Bipolar I, active manic episode · Based on DSM-5 and clinical literature</p>
+
+    <div class="profile-card">
+      <div class="profile-header">
+        <div class="profile-avatar avatar-manic">M</div>
+        <div>
+          <div class="profile-name">Manic Profile Example</div>
+          <div class="profile-type"><span class="tag tag-manic">Manic</span> Bipolar I — active manic episode</div>
+        </div>
+      </div>
+      <div class="trait-row"><span class="trait-label">Risk tolerance</span><div class="trait-bar-wrap"><div class="trait-bar bar-amber" style="width:90%"></div></div><span class="trait-val">90%</span></div>
+      <div class="trait-row"><span class="trait-label">Reward sensitivity</span><div class="trait-bar-wrap"><div class="trait-bar bar-amber" style="width:95%"></div></div><span class="trait-val">95%</span></div>
+      <div class="trait-row"><span class="trait-label">Loss sensitivity</span><div class="trait-bar-wrap"><div class="trait-bar bar-amber" style="width:15%"></div></div><span class="trait-val">15%</span></div>
+      <div class="trait-row"><span class="trait-label">Learning speed</span><div class="trait-bar-wrap"><div class="trait-bar bar-amber" style="width:25%"></div></div><span class="trait-val">25%</span></div>
+      <div class="trait-row"><span class="trait-label">Impulsivity</span><div class="trait-bar-wrap"><div class="trait-bar bar-red" style="width:95%"></div></div><span class="trait-val">95%</span></div>
+    </div>
+
+    <p class="muted" style="margin-top:0.5rem;">↑ Based on clinical descriptions: grandiosity, decreased need for sleep, pressured speech, reckless behavior, inflated self-esteem, racing thoughts. See DSM-5 criteria 296.41.</p>
+
+    <h2>Group 3 — Depressive episode</h2>
+    <p class="muted">2 profiles · Bipolar I, active depressive episode · Based on DSM-5 and clinical literature</p>
+
+    <div class="profile-card">
+      <div class="profile-header">
+        <div class="profile-avatar avatar-depressive">D</div>
+        <div>
+          <div class="profile-name">Depressive Profile Example</div>
+          <div class="profile-type"><span class="tag tag-depressive">Depressive</span> Bipolar I — depressive episode</div>
+        </div>
+      </div>
+      <div class="trait-row"><span class="trait-label">Risk tolerance</span><div class="trait-bar-wrap"><div class="trait-bar bar-purple" style="width:10%"></div></div><span class="trait-val">10%</span></div>
+      <div class="trait-row"><span class="trait-label">Reward sensitivity</span><div class="trait-bar-wrap"><div class="trait-bar bar-purple" style="width:20%"></div></div><span class="trait-val">20%</span></div>
+      <div class="trait-row"><span class="trait-label">Loss sensitivity</span><div class="trait-bar-wrap"><div class="trait-bar bar-purple" style="width:90%"></div></div><span class="trait-val">90%</span></div>
+      <div class="trait-row"><span class="trait-label">Learning speed</span><div class="trait-bar-wrap"><div class="trait-bar bar-purple" style="width:40%"></div></div><span class="trait-val">40%</span></div>
+      <div class="trait-row"><span class="trait-label">Impulsivity</span><div class="trait-bar-wrap"><div class="trait-bar bar-purple" style="width:5%"></div></div><span class="trait-val">5%</span></div>
+    </div>
+
+    <p class="muted" style="margin-top:0.5rem;">↑ Based on clinical descriptions: anhedonia, psychomotor retardation, fatigue, concentration difficulties, feelings of worthlessness. See DSM-5 criteria 296.51.</p>
+
+    <div class="warn-box">
+      <div class="wlabel">Your task for this week</div>
+      Find published clinical case descriptions or psychiatrist training documents that describe manic and depressive episodes in detail. These will become the text you use in your actual AI prompts. Do not use AI to generate these descriptions — they must come from real research.
+    </div>
+
+    <div class="step-nav">
+      <button class="btn" onclick="goTo(1)">← Back</button>
+      <span class="spacer"></span>
+      <button class="btn btn-primary" onclick="goTo(3)">Next: How the AI prompt works →</button>
+    </div>
+  </section>
+
+  <!-- ─ SECTION 3: How the AI prompt works ─ -->
+  <section class="section" id="sec-3">
+    <h1>How the AI prompt works</h1>
+    <p class="subtitle">Turning a patient profile into an AI instruction</p>
+
+    <div class="tutorial-box">
+      <div class="label">Plain English first</div>
+      <p>The AI (Llama running locally on your Mac) doesn't "know" it has bipolar disorder. You tell it how to behave by writing a detailed description of a fictional patient — and then you ask it to play that role while making deck choices. The better your description, the more meaningful your results.</p>
+    </div>
+
+    <h2>Anatomy of a good prompt</h2>
+    <p>Every prompt you write has three parts:</p>
+
+    <div class="card-grid" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="card">
+        <div class="card-label">Part 1</div>
+        <div style="font-size:13px; color:#e8e4d9; margin-top:0.5rem;">System role</div>
+        <div class="card-sub" style="margin-top:0.4rem;">Tells the AI who it is and how to respond</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Part 2</div>
+        <div style="font-size:13px; color:#e8e4d9; margin-top:0.5rem;">Patient profile</div>
+        <div class="card-sub" style="margin-top:0.4rem;">The clinical description based on research</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Part 3</div>
+        <div style="font-size:13px; color:#e8e4d9; margin-top:0.5rem;">Task instruction</div>
+        <div class="card-sub" style="margin-top:0.4rem;">Explains the IGT and asks for a choice</div>
+      </div>
+    </div>
+
+    <h2>Example prompt — manic profile</h2>
+    <p>Here's what an actual prompt looks like. The parts in <span class="highlight">gold</span> are where you'll insert your research-backed descriptions.</p>
+
+    <div class="prompt-preview" id="prompt-display">You are simulating a fictional research participant for an academic study on decision-making. You are not an AI assistant — you are roleplaying as this specific person.
+
+<em>--- PATIENT PROFILE ---</em>
+[INSERT YOUR CLINICAL DESCRIPTION HERE]
+Example: "This participant is a 32-year-old experiencing an active manic episode of Bipolar I disorder. They show elevated and expansive mood, decreased need for sleep (3 hours per night), rapid and pressured speech, and significantly increased goal-directed activity. They report feeling 'invincible' and have made several impulsive financial decisions in the past week. They show high reward sensitivity and very low loss aversion."
+
+<em>--- TASK ---</em>
+You are sitting in front of four decks of cards: A, B, C, and D.
+Each card gives you money, takes money away, or both.
+You start with $2,000. Your goal is to earn as much money as possible.
+You do not know which decks are good or bad at the start.
+
+Current trial: {TRIAL_NUMBER} of 100
+Your current balance: ${CURRENT_BALANCE}
+Your recent choices: {RECENT_HISTORY}
+
+<em>--- INSTRUCTIONS ---</em>
+Based on your personality and current mental state, which deck do you choose?
+Respond with ONLY one letter: A, B, C, or D.
+Do not explain your reasoning.</div>
+
+    <h2>Why this structure works</h2>
+    <p>By ending with "respond with ONLY one letter," you make it easy to collect the data automatically. The program reads the response, records the choice, updates the balance, and feeds the result into the next trial. You're essentially running 100 of these exchanges per simulation.</p>
+
+    <div class="code-label" style="margin-top:1.5rem;">What the program does automatically (pseudocode — so you understand the logic)</div>
+    <div class="code-block">
+<span class="cm">// For each simulation run:</span>
+balance = <span class="num">2000</span>
+history = []
+choices = []
+
+<span class="kw">for</span> trial <span class="kw">in</span> range(<span class="num">1</span>, <span class="num">101</span>):
+
+    <span class="cm">// Fill in the prompt template with current state</span>
+    prompt = build_prompt(profile, trial, balance, history)
+
+    <span class="cm">// Ask the AI to make a choice</span>
+    choice = ask_llama(prompt)  <span class="cm">// returns "A", "B", "C", or "D"</span>
+
+    <span class="cm">// Apply the IGT reward/penalty for that deck</span>
+    reward, penalty = get_outcome(choice, trial)
+    balance = balance + reward - penalty
+
+    <span class="cm">// Record everything</span>
+    choices.append(choice)
+    history.append({ trial, choice, reward, penalty, balance })
+
+<span class="cm">// Save results to spreadsheet row</span>
+save_to_excel(profile_name, choices, history, final_balance)
+    </div>
+
+    <div class="tutorial-box">
+      <div class="label">Your mentor handles this code</div>
+      <p>You don't need to write this yourself. Your job is to write the patient profile text in Part 2 of the prompt — the clinical description. The better and more specific that description, the more meaningful the simulation.</p>
+    </div>
+
+    <div class="step-nav">
+      <button class="btn" onclick="goTo(2)">← Back</button>
+      <span class="spacer"></span>
+      <button class="btn btn-primary" onclick="goTo(4)">Next: Run a simulation →</button>
+    </div>
+  </section>
+
+  <!-- ─ SECTION 4: Run a simulation ─ -->
+  <section class="section" id="sec-4">
+    <h1>Run a simulation</h1>
+    <p class="subtitle">See the IGT in action — run a mock trial right here in the browser</p>
+
+    <div class="tutorial-box">
+      <div class="label">What this does</div>
+      <p>This is a built-in demo that simulates how each profile type would perform on the IGT, using the reward/penalty structure from the real task. It's not using Llama — it uses probability-based decision rules based on the research literature. Use it to understand the expected patterns before you run the real thing.</p>
+    </div>
+
+    <div class="sim-controls">
+      <select id="sim-profile">
+        <option value="neutral">Neutral (control)</option>
+        <option value="manic">Manic episode</option>
+        <option value="depressive">Depressive episode</option>
+      </select>
+      <input type="number" id="sim-trials" value="100" min="20" max="100" style="width:80px;">
+      <span class="muted">trials</span>
+      <button class="btn btn-primary" onclick="runSim()">▶ Run simulation</button>
+      <button class="btn" onclick="clearSim()">Reset</button>
+    </div>
+
+    <div class="card-grid" id="sim-stats">
+      <div class="card">
+        <div class="card-label">Final balance</div>
+        <div class="card-value" id="stat-balance">—</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Risky choices (A/B)</div>
+        <div class="card-value" id="stat-risky">—</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Safe choices (C/D)</div>
+        <div class="card-value" id="stat-safe">—</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Most chosen deck</div>
+        <div class="card-value" id="stat-deck">—</div>
+      </div>
+    </div>
+
+    <div class="log-wrap" id="sim-log">
+      <div class="log-line">Ready. Select a profile and click Run.</div>
+    </div>
+
+    <div style="margin-top: 1.5rem;">
+      <div class="card-label" style="margin-bottom:0.75rem;">Deck selection over time (blocks of 20 trials)</div>
+      <canvas id="sim-chart" height="180"></canvas>
+    </div>
+
+    <div class="step-nav">
+      <button class="btn" onclick="goTo(3)">← Back</button>
+      <span class="spacer"></span>
+      <button class="btn btn-primary" onclick="goTo(5)">Next: Read your results →</button>
+    </div>
+  </section>
+
+  <!-- ─ SECTION 5: Read your results ─ -->
+  <section class="section" id="sec-5">
+    <h1>Reading your results</h1>
+    <p class="subtitle">What the numbers mean and how to interpret them</p>
+
+    <div class="tutorial-box">
+      <div class="label">Key question</div>
+      <p>When you get your Excel file from the real Llama simulation, what are you actually looking for? This section walks you through each variable and what a "meaningful result" looks like for your hypothesis.</p>
+    </div>
+
+    <h2>Variable 1 — Proportion of risky choices</h2>
+    <p>Calculate: <strong>(number of A or B choices) ÷ 100 × 100%</strong></p>
+    <p>What to expect based on literature:</p>
+    <table class="results-table">
+      <thead><tr><th>Group</th><th>Expected risky %</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag tag-neutral">Neutral</span></td><td>~40–50% early, drops to ~25% by end</td><td>Learns to avoid bad decks</td></tr>
+        <tr><td><span class="tag tag-manic">Manic</span></td><td>Stays high, ~60–80% throughout</td><td>High reward sensitivity, low loss aversion</td></tr>
+        <tr><td><span class="tag tag-depressive">Depressive</span></td><td>Very low, ~10–20%</td><td>Avoids all risk due to loss sensitivity</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Variable 2 — Final score</h2>
+    <p>This is the total money after 100 trials. A "rational" player ends with more than $2,000 (the starting loan). Someone consistently picking risky decks will end with less.</p>
+
+    <h2>Variable 3 — Learning curve</h2>
+    <p>Split your 100 trials into 5 blocks of 20. Plot risky choices per block. A healthy participant's line goes down (they learn). A manic participant's stays flat or goes up. A depressive participant may start low and stay low regardless of feedback.</p>
+
+    <div style="margin: 1.5rem 0;">
+      <div class="card-label" style="margin-bottom:0.75rem;">Expected learning curve shapes by group</div>
+      <canvas id="learn-chart" height="200"></canvas>
+    </div>
+
+    <h2>What counts as a "meaningful result"?</h2>
+    <p>A result is meaningful if there is a <strong>clear, consistent difference between your groups</strong> that matches the direction predicted by the literature. You don't need statistical significance for a fellowship project — you need to show the pattern and discuss whether it makes sense.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-label">Strong result</div>
+        <div style="font-size:13px; color:#4ade80; margin-top:0.5rem;">Manic > Neutral > Depressive in risky choices, consistent across all three groups</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Partial result</div>
+        <div style="font-size:13px; color:#fbbf24; margin-top:0.5rem;">Two groups differ clearly but the third is ambiguous — still worth discussing</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Null result</div>
+        <div style="font-size:13px; color:#f87171; margin-top:0.5rem;">No difference between groups — also valid! May suggest profile needs refinement</div>
+      </div>
+    </div>
+
+    <div class="step-nav">
+      <button class="btn" onclick="goTo(4)">← Back</button>
+      <span class="spacer"></span>
+      <button class="btn btn-primary" onclick="goTo(6)">Next: Export & next steps →</button>
+    </div>
+  </section>
+
+  <!-- ─ SECTION 6: Export & next steps ─ -->
+  <section class="section" id="sec-6">
+    <h1>Export & next steps</h1>
+    <p class="subtitle">Getting your data out and what to do with it</p>
+
+    <h2>Your checklist before running the real simulation</h2>
+
+    <div class="profile-card">
+      <div id="checklist">
+        <div class="trait-row" style="align-items:flex-start; gap:1rem;">
+          <input type="checkbox" id="c1" style="margin-top:3px; accent-color:#c9a96e;">
+          <label for="c1" style="font-size:13px; color:#b8b4aa; cursor:pointer;">I have read the original IGT paper and understand what variables are measured</label>
+        </div>
+        <div class="trait-row" style="align-items:flex-start; gap:1rem;">
+          <input type="checkbox" id="c2" style="margin-top:3px; accent-color:#c9a96e;">
+          <label for="c2" style="font-size:13px; color:#b8b4aa; cursor:pointer;">I have written a clear research question (e.g., "How do manic vs. depressive mood profiles affect risk-taking on the Iowa Gambling Task?")</label>
+        </div>
+        <div class="trait-row" style="align-items:flex-start; gap:1rem;">
+          <input type="checkbox" id="c3" style="margin-top:3px; accent-color:#c9a96e;">
+          <label for="c3" style="font-size:13px; color:#b8b4aa; cursor:pointer;">I have found at least 2–3 published clinical descriptions of manic episodes (from DSM-5, textbooks, or case studies)</label>
+        </div>
+        <div class="trait-row" style="align-items:flex-start; gap:1rem;">
+          <input type="checkbox" id="c4" style="margin-top:3px; accent-color:#c9a96e;">
+          <label for="c4" style="font-size:13px; color:#b8b4aa; cursor:pointer;">I have found at least 2–3 published clinical descriptions of depressive episodes</label>
+        </div>
+        <div class="trait-row" style="align-items:flex-start; gap:1rem;">
+          <input type="checkbox" id="c5" style="margin-top:3px; accent-color:#c9a96e;">
+          <label for="c5" style="font-size:13px; color:#b8b4aa; cursor:pointer;">I have drafted all 6 patient profile prompts (2 neutral, 2 manic, 2 depressive)</label>
+        </div>
+        <div class="trait-row" style="align-items:flex-start; gap:1rem;">
+          <input type="checkbox" id="c6" style="margin-top:3px; accent-color:#c9a96e;">
+          <label for="c6" style="font-size:13px; color:#b8b4aa; cursor:pointer;">Llama is installed and running on my Mac</label>
+        </div>
+        <div class="trait-row" style="align-items:flex-start; gap:1rem;">
+          <input type="checkbox" id="c7" style="margin-top:3px; accent-color:#c9a96e;">
+          <label for="c7" style="font-size:13px; color:#b8b4aa; cursor:pointer;">I have completed Gate Check 1</label>
+        </div>
+        <div class="trait-row" style="align-items:flex-start; gap:1rem;">
+          <input type="checkbox" id="c8" style="margin-top:3px; accent-color:#c9a96e;">
+          <label for="c8" style="font-size:13px; color:#b8b4aa; cursor:pointer;">I have started my annotated bibliography with at least 3 sources</label>
+        </div>
+      </div>
+    </div>
+
+    <h2>Gate Check 1 — what it needs</h2>
+    <table class="results-table">
+      <thead><tr><th>Requirement</th><th>Where it comes from in this project</th></tr></thead>
+      <tbody>
+        <tr><td>Research question</td><td>How do manic vs. depressive mood profiles affect risk-taking on the IGT?</td></tr>
+        <tr><td>Problem statement</td><td>Why bipolar decision-making is hard to study in person; simulation as a method</td></tr>
+        <tr><td>Hypothesis</td><td>Manic profiles will choose more risky decks; depressive profiles will avoid all risk</td></tr>
+        <tr><td>Measurement methods</td><td>% risky choices, final score, learning curve, deck frequency</td></tr>
+        <tr><td>Feasibility</td><td>Uses Llama locally — free, no IRB, no human subjects</td></tr>
+        <tr><td>Timeline</td><td>Week 1: lit review · Week 2–3: profiles + setup · Week 4–5: run sims · Week 6–7: analysis + paper</td></tr>
+        <tr><td>Materials needed</td><td>Mac, Llama, Python (mentor sets up), Excel or Google Sheets</td></tr>
+        <tr><td>Data analysis plan</td><td>Group comparisons on all 4 variables, learning curves plotted by block</td></tr>
+        <tr><td>Meaningful result</td><td>Clear directional difference between groups that matches literature predictions</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Export simulation results</h2>
+    <p>After running the demo simulation in Section 5, you can download a CSV file of the results to practice reading data before your real runs.</p>
+    <button class="btn btn-primary" onclick="exportCSV()" id="export-btn" style="display:inline-block;">Download sample CSV</button>
+    <span class="muted" id="export-note">Run a simulation in Section 5 first to enable this.</span>
+
+    <div class="step-nav">
+      <button class="btn" onclick="goTo(5)">← Back</button>
+      <span class="spacer"></span>
+      <button class="btn" onclick="goTo(0)">Start over from the beginning</button>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+
+// ── Navigation ──
+let currentSection = 0;
+const totalSections = 7;
+const done = new Set();
+
+function goTo(n) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + n).classList.add('active');
+  document.getElementById('nav-' + n).classList.add('active');
+  if (currentSection !== n) done.add(currentSection);
+  done.forEach(i => {
+    const el = document.getElementById('nav-' + i);
+    if (el && i !== n) {
+      el.classList.add('done');
+      el.querySelector('.nav-num').textContent = '✓';
+    }
+  });
+  currentSection = n;
+  window.scrollTo(0, 0);
+  if (n === 5) drawLearningChart();
+}
+
+// ── Deck info ──
+const deckData = {
+  a: { title: 'Deck A — High reward, very high penalty', text: 'Each card gives you +$100. But penalties are large and unpredictable — sometimes up to $350. Over 10 cards, you net −$250. This is a "bad" deck. Manic profiles often prefer this one because of the frequent, exciting rewards, even though the penalties outweigh them.' },
+  b: { title: 'Deck B — Very high reward, very high penalty', text: 'Each card gives +$100. Every 10 cards you also get one massive penalty of $1,250. The reward feels great when it comes, but the occasional catastrophic loss means net −$250 per 10 cards. Another "bad" deck. Manic profiles may gravitate here for the occasional big win.' },
+  c: { title: 'Deck C — Moderate reward, low penalty', text: 'Each card gives +$50. Penalties are small and frequent but never catastrophic. Net gain of +$250 per 10 cards. A "good" deck. Healthy participants gradually shift toward this deck. Depressive profiles may also use it but often avoid the task entirely.' },
+  d: { title: 'Deck D — High reward, moderate penalty', text: 'Each card gives +$50. Penalties are moderate. Net gain of +$250 per 10 cards. Another "good" deck. Sometimes preferred by participants who learn the task well. The reward is slightly more exciting than Deck C, which can draw people in without losing money.' }
+};
+
+function showDeck(id) {
+  const d = deckData[id];
+  document.getElementById('deck-detail').style.display = 'block';
+  document.getElementById('deck-info-box').innerHTML = `
+    <div style="font-size:14px; color:#c9a96e; margin-bottom:0.75rem;">${d.title}</div>
+    <p style="font-size:13px; margin:0;">${d.text}</p>
+  `;
+  document.querySelectorAll('.deck-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('deck-' + id).classList.add('selected');
+}
+
+// ── IGT reward structure ──
+const deckRewards = {
+  A: { gain: 100, lossPer10: [0,0,0,150,0,200,0,100,0,250], net: -150 },
+  B: { gain: 100, lossPer10: [0,0,0,0,0,0,0,0,0,1250], net: -250 },
+  C: { gain: 50,  lossPer10: [0,25,0,50,0,25,0,25,0,50], net: 150 },
+  D: { gain: 50,  lossPer10: [0,0,250,0,0,0,250,0,0,0], net: 100 }
+};
+
+// simplified net per trial
+function getOutcome(deck, trial) {
+  const r = Math.random();
+  if (deck === 'A') {
+    const gain = 100;
+    const loss = (trial % 10 === 0) ? [150,200,150,200,300][Math.floor(Math.random()*5)] : 0;
+    return { gain, loss };
+  }
+  if (deck === 'B') {
+    const gain = 100;
+    const loss = (trial % 10 === 0) ? 1250 : 0;
+    return { gain, loss };
+  }
+  if (deck === 'C') {
+    const gain = 50;
+    const loss = (r < 0.5) ? [25, 50, 75][Math.floor(Math.random()*3)] : 0;
+    return { gain, loss };
+  }
+  if (deck === 'D') {
+    const gain = 50;
+    const loss = (trial % 10 === 5 || trial % 10 === 0) ? 250 : 0;
+    return { gain, loss };
+  }
+}
+
+// Profile decision logic (probability-based, literature-informed)
+function choiceProbabilities(profile, trial, balance, recentChoices) {
+  let probs = { A: 0.25, B: 0.25, C: 0.25, D: 0.25 };
+
+  if (profile === 'manic') {
+    // High reward seeking, low loss aversion, no learning
+    probs = { A: 0.35, B: 0.35, C: 0.15, D: 0.15 };
+    // Add some variance but no systematic learning
+  } else if (profile === 'depressive') {
+    // Risk aversion, low motivation, some learning paralysis
+    probs = { A: 0.08, B: 0.07, C: 0.45, D: 0.40 };
+    // Over time, may show less variation (paralysis)
+    if (trial > 50) probs = { A: 0.05, B: 0.05, C: 0.50, D: 0.40 };
+  } else {
+    // Neutral: starts even, learns to prefer C/D
+    const learning = Math.min(trial / 100, 1);
+    probs.A = 0.25 - 0.15 * learning;
+    probs.B = 0.25 - 0.15 * learning;
+    probs.C = 0.25 + 0.12 * learning;
+    probs.D = 0.25 + 0.18 * learning;
+  }
+
+  return probs;
+}
+
+function sampleDeck(probs) {
+  const r = Math.random();
+  let cum = 0;
+  for (const [deck, p] of Object.entries(probs)) {
+    cum += p;
+    if (r < cum) return deck;
+  }
+  return 'D';
+}
+
+let simData = null;
+let simChart = null;
+
+async function runSim() {
+  const profile = document.getElementById('sim-profile').value;
+  const trials = parseInt(document.getElementById('sim-trials').value);
+  const log = document.getElementById('sim-log');
+  log.innerHTML = '';
+
+  const addLog = (text, cls = '') => {
+    const d = document.createElement('div');
+    d.className = 'log-line ' + cls;
+    d.textContent = text;
+    log.appendChild(d);
+    log.scrollTop = log.scrollHeight;
+  };
+
+  addLog(`Starting simulation: ${profile} profile, ${trials} trials`, 'head');
+  addLog('─'.repeat(50));
+
+  let balance = 2000;
+  const choices = [];
+  const balances = [];
+
+  for (let t = 1; t <= trials; t++) {
+    await new Promise(r => setTimeout(r, 8));
+    const probs = choiceProbabilities(profile, t, balance, choices.slice(-5));
+    const choice = sampleDeck(probs);
+    const { gain, loss } = getOutcome(choice, t);
+    balance += gain - loss;
+    choices.push(choice);
+    balances.push(balance);
+
+    const net = gain - loss;
+    const cls = net >= 0 ? 'good' : 'bad';
+    if (t <= 10 || t % 10 === 0) {
+      addLog(`Trial ${String(t).padStart(3, ' ')} | Deck ${choice} | +$${gain} −$${loss} | Net: ${net >= 0 ? '+' : ''}$${net} | Balance: $${balance}`, cls);
+    }
+  }
+
+  addLog('─'.repeat(50));
+  addLog(`Simulation complete.`, 'head');
+
+  const risky = choices.filter(c => c === 'A' || c === 'B').length;
+  const safe = choices.filter(c => c === 'C' || c === 'D').length;
+  const deckCounts = { A: 0, B: 0, C: 0, D: 0 };
+  choices.forEach(c => deckCounts[c]++);
+  const topDeck = Object.entries(deckCounts).sort((a, b) => b[1] - a[1])[0][0];
+
+  addLog(`Risky (A/B): ${risky} choices (${Math.round(risky/trials*100)}%) | Safe (C/D): ${safe} (${Math.round(safe/trials*100)}%)`, 'info');
+  addLog(`Final balance: $${balance} | Most chosen: Deck ${topDeck}`, 'info');
+
+  document.getElementById('stat-balance').textContent = '$' + balance.toLocaleString();
+  document.getElementById('stat-risky').textContent = Math.round(risky/trials*100) + '%';
+  document.getElementById('stat-safe').textContent = Math.round(safe/trials*100) + '%';
+  document.getElementById('stat-deck').textContent = 'Deck ' + topDeck;
+
+  simData = { profile, choices, balances, deckCounts, trials };
+
+  // Draw chart — risky % per block of 20
+  const blockSize = Math.floor(trials / 5);
+  const blocks = [];
+  for (let i = 0; i < 5; i++) {
+    const block = choices.slice(i * blockSize, (i + 1) * blockSize);
+    const r = block.filter(c => c === 'A' || c === 'B').length;
+    blocks.push(Math.round(r / block.length * 100));
+  }
+
+  if (simChart) simChart.destroy();
+  const ctx = document.getElementById('sim-chart').getContext('2d');
+  simChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['Trials 1–20', 'Trials 21–40', 'Trials 41–60', 'Trials 61–80', 'Trials 81–100'],
+      datasets: [{
+        label: '% Risky choices',
+        data: blocks,
+        borderColor: profile === 'manic' ? '#fbbf24' : profile === 'depressive' ? '#a78bfa' : '#7dd3fc',
+        backgroundColor: 'transparent',
+        pointBackgroundColor: profile === 'manic' ? '#fbbf24' : profile === 'depressive' ? '#a78bfa' : '#7dd3fc',
+        tension: 0.3
+      }]
+    },
+    options: {
+      plugins: { legend: { labels: { color: '#9ca3af', font: { size: 12 } } } },
+      scales: {
+        x: { ticks: { color: '#6b7280', font: { size: 11 } }, grid: { color: '#2a2d3a' } },
+        y: {
+          ticks: { color: '#6b7280', font: { size: 11 }, callback: v => v + '%' },
+          grid: { color: '#2a2d3a' },
+          min: 0, max: 100
+        }
+      }
+    }
+  });
+
+  document.getElementById('export-btn').style.display = 'inline-block';
+  document.getElementById('export-note').style.display = 'none';
+}
+
+function clearSim() {
+  document.getElementById('sim-log').innerHTML = '<div class="log-line">Ready. Select a profile and click Run.</div>';
+  ['stat-balance','stat-risky','stat-safe','stat-deck'].forEach(id => document.getElementById(id).textContent = '—');
+  if (simChart) { simChart.destroy(); simChart = null; }
+  simData = null;
+}
+
+// ── Learning chart ──
+let learnChart = null;
+
+function drawLearningChart() {
+  if (learnChart) return;
+  const ctx = document.getElementById('learn-chart').getContext('2d');
+  learnChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['Trials 1–20', '21–40', '41–60', '61–80', '81–100'],
+      datasets: [
+        {
+          label: 'Neutral (expected)',
+          data: [50, 42, 33, 27, 22],
+          borderColor: '#7dd3fc',
+          backgroundColor: 'transparent',
+          pointBackgroundColor: '#7dd3fc',
+          tension: 0.3
+        },
+        {
+          label: 'Manic (expected)',
+          data: [72, 68, 70, 65, 67],
+          borderColor: '#fbbf24',
+          backgroundColor: 'transparent',
+          pointBackgroundColor: '#fbbf24',
+          tension: 0.3
+        },
+        {
+          label: 'Depressive (expected)',
+          data: [18, 14, 12, 10, 9],
+          borderColor: '#a78bfa',
+          backgroundColor: 'transparent',
+          pointBackgroundColor: '#a78bfa',
+          tension: 0.3
+        }
+      ]
+    },
+    options: {
+      plugins: { legend: { labels: { color: '#9ca3af', font: { size: 12 } } } },
+      scales: {
+        x: { ticks: { color: '#6b7280', font: { size: 11 } }, grid: { color: '#2a2d3a' } },
+        y: {
+          ticks: { color: '#6b7280', font: { size: 11 }, callback: v => v + '%' },
+          grid: { color: '#2a2d3a' },
+          min: 0, max: 100,
+          title: { display: true, text: '% Risky choices', color: '#6b7280', font: { size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+// ── CSV export ──
+function exportCSV() {
+  if (!simData) return;
+  const rows = [['trial', 'deck', 'balance', 'is_risky']];
+  simData.choices.forEach((c, i) => {
+    rows.push([i + 1, c, simData.balances[i], (c === 'A' || c === 'B') ? 1 : 0]);
+  });
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `IGT_simulation_${simData.profile}.csv`;
+  a.click();
+}
+
+</script>
+</body>
+</html>
