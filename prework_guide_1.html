@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Before Our Next Meeting — Setup Guide</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, 'Helvetica Neue', sans-serif;
+    background: #f7f6f2;
+    color: #1a1a1a;
+    line-height: 1.6;
+  }
+
+  .page {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 3rem 2rem 6rem;
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 0.75rem;
+  }
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    color: #1a1a1a;
+    margin-bottom: 0.5rem;
+    line-height: 1.2;
+  }
+
+  .intro {
+    font-size: 15px;
+    color: #555;
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #e5e3dd;
+  }
+
+  /* ── Steps ── */
+  .step {
+    margin-bottom: 2.5rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 1px solid #e5e3dd;
+  }
+
+  .step:last-child { border-bottom: none; }
+
+  .step-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .step-num {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #1a1a1a;
+    color: #f7f6f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .step-num.done {
+    background: #2d6a4f;
+  }
+
+  .step-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    letter-spacing: -0.01em;
+  }
+
+  .step-sub {
+    font-size: 13px;
+    color: #888;
+    margin-top: 2px;
+  }
+
+  .step-body {
+    padding-left: 44px;
+  }
+
+  p {
+    font-size: 14px;
+    color: #444;
+    margin-bottom: 0.75rem;
+    line-height: 1.7;
+  }
+
+  /* ── Instruction list ── */
+  .instructions {
+    list-style: none;
+    margin: 0.75rem 0;
+  }
+
+  .instructions li {
+    display: flex;
+    gap: 10px;
+    font-size: 14px;
+    color: #333;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f0ede7;
+    align-items: flex-start;
+  }
+
+  .instructions li:last-child { border-bottom: none; }
+
+  .li-num {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #f0ede7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #888;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* ── Code / terminal ── */
+  .terminal {
+    background: #1a1a1a;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin: 0.75rem 0;
+    position: relative;
+  }
+
+  .terminal-bar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 0.75rem;
+  }
+
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .dot-red { background: #ff5f57; }
+  .dot-yellow { background: #febc2e; }
+  .dot-green { background: #28c840; }
+
+  .terminal-code {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #a8ff78;
+    line-height: 1.8;
+  }
+
+  .terminal-comment {
+    color: #555;
+    font-style: italic;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #333;
+    border: none;
+    color: #888;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+
+  .copy-btn:hover { background: #444; color: #ccc; }
+
+  /* ── Info / warning boxes ── */
+  .info-box {
+    background: #eaf4ee;
+    border-left: 3px solid #2d6a4f;
+    border-radius: 0 8px 8px 0;
+    padding: 0.875rem 1rem;
+    margin: 0.75rem 0;
+    font-size: 13px;
+    color: #2d4a3e;
+  }
+
+  .warn-box {
+    background: #fef9ec;
+    border-left: 3px solid #d4a017;
+    border-radius: 0 8px 8px 0;
+    padding: 0.875rem 1rem;
+    margin: 0.75rem 0;
+    font-size: 13px;
+    color: #5a4200;
+  }
+
+  .box-label {
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+  }
+
+  .info-box .box-label { color: #2d6a4f; }
+  .warn-box .box-label { color: #d4a017; }
+
+  /* ── Screenshot placeholder ── */
+  .screenshot {
+    background: #eae8e2;
+    border: 1px dashed #ccc;
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+    font-size: 13px;
+    color: #888;
+    margin: 0.75rem 0;
+  }
+
+  /* ── Checkbox ── */
+  .check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 0.6rem 0;
+    font-size: 14px;
+    color: #333;
+    border-bottom: 1px solid #f0ede7;
+    cursor: pointer;
+  }
+
+  .check-item:last-child { border-bottom: none; }
+
+  .check-item input { accent-color: #2d6a4f; margin-top: 3px; flex-shrink: 0; }
+  .check-item.checked label { text-decoration: line-through; color: #aaa; }
+
+  /* ── Final box ── */
+  .final-box {
+    background: #1a1a1a;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-top: 2rem;
+    text-align: center;
+  }
+
+  .final-box h2 {
+    color: #f7f6f2;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .final-box p {
+    color: #888;
+    font-size: 13px;
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .tag-you { background: #e8f4fd; color: #1a6fa8; }
+  .tag-mentor { background: #fdecea; color: #c0392b; }
+
+  hr { border: none; border-top: 1px solid #e5e3dd; margin: 2rem 0; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="eyebrow">Research Fellowship — Prework</div>
+  <h1>Here's what to do before we meet</h1>
+  <p class="intro">Hey! So I put this together so you know exactly what to work on before our next meeting. Some of this you do on your own, and some of it we'll finish up together. Just go through each step and you'll be good.</p>
+
+  <!-- ── STEP 1 ── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">Go through the tutorial site</div>
+        <div class="step-sub"><span class="tag tag-you">On your own</span> &nbsp; About 30–40 minutes</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <p>Open the tutorial link I sent you and go through all 7 sections. Don't skip around — each one builds on the last so it'll make more sense if you go in order.</p>
+      <p>When you hit <strong>Section 5</strong>, run the demo simulation for all three profiles: Neutral, Manic, and Depressive. Pay attention to how the results are different from each other. I'm going to ask you about it when we meet so just have a general idea of what you noticed.</p>
+      <div class="info-box">
+        <div class="box-label">Think about this while you run it</div>
+        Which profile made the most money? Which made the least? Did any of them seem to "learn" and start avoiding the risky decks? Why do you think that happened?
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 2 ── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-title">Install Ollama on your Mac</div>
+        <div class="step-sub"><span class="tag tag-you">On your own</span> &nbsp; About 10 minutes</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <p>Ollama is a free app that lets you run AI directly on your Mac. No wifi needed once it's set up, no accounts, completely free. This is what we're going to use to run your simulation.</p>
+
+      <ul class="instructions">
+        <li>
+          <span class="li-num">1</span>
+          <span>Go to <strong>ollama.com</strong> in your browser</span>
+        </li>
+        <li>
+          <span class="li-num">2</span>
+          <span>Click the <strong>Download</strong> button — it'll automatically know you're on a Mac</span>
+        </li>
+        <li>
+          <span class="li-num">3</span>
+          <span>Open the downloaded file and drag Ollama into your Applications folder, same as any other app</span>
+        </li>
+        <li>
+          <span class="li-num">4</span>
+          <span>Open Ollama from your Applications folder. You'll see a little llama icon show up in your menu bar at the top right — that means it's running and you're good</span>
+        </li>
+      </ul>
+
+      <div class="warn-box">
+        <div class="box-label">If your Mac blocks it</div>
+        If you get a popup saying it's from an unidentified developer, go to System Settings → Privacy & Security and scroll down to click "Open Anyway." This is totally normal for apps you download outside the App Store.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 3 ── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-title">Download the AI model</div>
+        <div class="step-sub"><span class="tag tag-you">On your own</span> &nbsp; 5–15 minutes depending on your wifi</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <p>Now you need to actually download the AI we're using. It's called <strong>Llama 3</strong> and it's about 4GB, so make sure you're on wifi before you start this.</p>
+      <p>Open the <strong>Terminal</strong> app on your Mac. Press <strong>Cmd + Space</strong>, type "Terminal", and hit Enter. It'll open a black window with a blinking cursor — don't stress, you're only typing one thing.</p>
+
+      <div class="screenshot">Terminal is just a black window with a cursor. You're literally only typing one line so don't overthink it.</div>
+
+      <p>Type this and press Enter:</p>
+
+      <div class="terminal">
+        <div class="terminal-bar">
+          <div class="dot dot-red"></div>
+          <div class="dot dot-yellow"></div>
+          <div class="dot dot-green"></div>
+        </div>
+        <div class="terminal-code">ollama pull llama3</div>
+        <button class="copy-btn" onclick="copyText('ollama pull llama3', this)">copy</button>
+      </div>
+
+      <p>You'll see it downloading with a progress bar. When it says <strong>"success"</strong> you're done — close Terminal.</p>
+
+      <div class="info-box">
+        <div class="box-label">What just happened</div>
+        You downloaded a 4GB AI model straight onto your Mac. It runs completely offline from here — no data goes anywhere, it's free to use as many times as you want.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 4 ── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">4</div>
+      <div>
+        <div class="step-title">Make sure it actually works</div>
+        <div class="step-sub"><span class="tag tag-you">On your own</span> &nbsp; 2 minutes</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <p>Open Terminal again and run this:</p>
+
+      <div class="terminal">
+        <div class="terminal-bar">
+          <div class="dot dot-red"></div>
+          <div class="dot dot-yellow"></div>
+          <div class="dot dot-green"></div>
+        </div>
+        <div class="terminal-code">ollama run llama3 "Say hello in one sentence"</div>
+        <button class="copy-btn" onclick="copyText('ollama run llama3 "Say hello in one sentence"', this)">copy</button>
+      </div>
+
+      <p>If it responds with something like "Hello! It's great to meet you." then it's working. <strong>Screenshot it and send it to me on Discord</strong> so I know you're all set before we meet.</p>
+
+      <div class="warn-box">
+        <div class="box-label">If you get an error</div>
+        Don't stress — just screenshot whatever it says and send it to me on Discord before the meeting. The most common thing is that Ollama isn't open. Check your menu bar for the llama icon and click it to open it, then try again.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 5 ── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">5</div>
+      <div>
+        <div class="step-title">Find clinical descriptions of bipolar episodes</div>
+        <div class="step-sub"><span class="tag tag-you">On your own</span> &nbsp; 1–2 hours of reading</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <p>This is honestly the most important thing to do this week. The whole simulation depends on the patient profiles you build, and those need to come from <strong>real published sources</strong> — not anything AI-generated.</p>
+
+      <p>You're looking for descriptions of what manic and depressive episodes actually look like — symptoms, behaviors, how the person thinks and acts. Here's where to look:</p>
+
+      <ul class="instructions">
+        <li>
+          <span class="li-num">1</span>
+          <span><strong>DSM-5</strong> — just Google "DSM-5 Bipolar I manic episode criteria" — the official descriptions are really detailed and exactly what you need</span>
+        </li>
+        <li>
+          <span class="li-num">2</span>
+          <span><strong>Google Scholar</strong> — search "bipolar I manic episode case study" or "bipolar depressive episode clinical description"</span>
+        </li>
+        <li>
+          <span class="li-num">3</span>
+          <span><strong>Your Iowa Gambling Task paper</strong> — look through its reference list, some of those papers probably describe bipolar patients in detail. Click into them.</span>
+        </li>
+        <li>
+          <span class="li-num">4</span>
+          <span><strong>nimh.nih.gov and nami.org</strong> — both have solid research-backed descriptions of bipolar episodes</span>
+        </li>
+      </ul>
+
+      <div class="info-box">
+        <div class="box-label">Save everything you find</div>
+        For each source — write down the full citation, copy the part that stood out to you, and one sentence on why it's useful. You'll be plugging these descriptions directly into the simulation.
+      </div>
+
+      <div class="warn-box">
+        <div class="box-label">Paper behind a paywall?</div>
+        Don't pay for it. Just save the citation and send it to me — I can get it for you.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 6 ── -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">6</div>
+      <div>
+        <div class="step-title">Complete Gate Check 1</div>
+        <div class="step-sub"><span class="tag tag-you">On your own</span> &nbsp; Due Sunday</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <p>Use Section 7 of the tutorial site — there's a table that maps out every Gate Check requirement to your project so you're not starting from scratch. Fill in each part based on what you've learned this week.</p>
+      <p>Don't overthink it. Your answers don't need to be perfect, they just need to show you know where your project is going and why.</p>
+    </div>
+  </div>
+
+  <!-- ── Checklist ── -->
+  <hr>
+  <h2 style="font-size:1rem; font-weight:600; margin-bottom:1rem;">Quick checklist before we meet</h2>
+
+  <div id="checklist">
+    <div class="check-item" onclick="toggleCheck(this)">
+      <input type="checkbox"> <label>Went through all 7 sections of the tutorial site</label>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this)">
+      <input type="checkbox"> <label>Ran the demo for all 3 profiles and can talk about what I noticed</label>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this)">
+      <input type="checkbox"> <label>Installed Ollama on my Mac</label>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this)">
+      <input type="checkbox"> <label>Downloaded Llama 3 (ollama pull llama3)</label>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this)">
+      <input type="checkbox"> <label>Tested it and sent a screenshot on Discord</label>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this)">
+      <input type="checkbox"> <label>Found at least 2–3 descriptions of manic episodes from real sources</label>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this)">
+      <input type="checkbox"> <label>Found at least 2–3 descriptions of depressive episodes from real sources</label>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this)">
+      <input type="checkbox"> <label>Completed Gate Check 1 (due Sunday)</label>
+    </div>
+  </div>
+
+  <div class="final-box">
+    <h2>Stuck on something?</h2>
+    <p>Just message me on Discord. If something's not working or you can't find a paper, send a screenshot and I'll help you figure it out — don't sit stuck on it alone.</p>
+  </div>
+
+</div>
+
+<script>
+function toggleCheck(el) {
+  const cb = el.querySelector('input');
+  cb.checked = !cb.checked;
+  el.classList.toggle('checked', cb.checked);
+}
+
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'copied!';
+    setTimeout(() => btn.textContent = 'copy', 2000);
+  });
+}
+</script>
+</body>
+</html>

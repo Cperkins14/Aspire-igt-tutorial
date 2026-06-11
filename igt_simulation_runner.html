@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IGT Simulation Runner</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, 'Helvetica Neue', sans-serif;
+    background: #f7f6f2;
+    color: #1a1a1a;
+    min-height: 100vh;
+  }
+
+  .shell {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    min-height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    background: #1a1a1a;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .sidebar-title {
+    color: #f7f6f2;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .sidebar-sub {
+    font-size: 12px;
+    color: #555;
+    margin-top: 4px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #555;
+    display: inline-block;
+    margin-right: 6px;
+  }
+
+  .status-dot.green { background: #4ade80; box-shadow: 0 0 6px #4ade8066; }
+  .status-dot.red { background: #f87171; }
+  .status-dot.yellow { background: #fbbf24; }
+
+  .status-line {
+    font-size: 12px;
+    color: #888;
+    display: flex;
+    align-items: center;
+  }
+
+  .divider { border: none; border-top: 1px solid #2a2a2a; }
+
+  /* Profile cards in sidebar */
+  .profile-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .profile-btn {
+    background: #252525;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+    width: 100%;
+  }
+
+  .profile-btn:hover { background: #2e2e2e; border-color: #555; }
+  .profile-btn.active { border-color: #c9a96e; background: #252010; }
+
+  .profile-btn-name { font-size: 13px; color: #e8e4d9; font-weight: 500; }
+  .profile-btn-type { font-size: 11px; color: #666; margin-top: 2px; }
+  .profile-btn.active .profile-btn-type { color: #c9a96e99; }
+
+  .add-profile-btn {
+    background: none;
+    border: 1px dashed #333;
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    color: #555;
+    font-size: 12px;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+
+  .add-profile-btn:hover { border-color: #555; color: #888; }
+
+  .sidebar-footer {
+    margin-top: auto;
+    font-size: 11px;
+    color: #444;
+    line-height: 1.6;
+  }
+
+  /* ── Main ── */
+  .main { padding: 2.5rem; max-width: 780px; }
+
+  h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 0.25rem; }
+  h2 { font-size: 1rem; font-weight: 600; margin: 1.75rem 0 0.75rem; color: #1a1a1a; }
+  p { font-size: 14px; color: #555; line-height: 1.7; margin-bottom: 0.75rem; }
+
+  .page-sub { font-size: 14px; color: #888; margin-bottom: 2rem; }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid #e5e3dd;
+    margin-bottom: 2rem;
+  }
+
+  .tab {
+    padding: 0.6rem 1.25rem;
+    font-size: 13px;
+    color: #888;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    font-family: inherit;
+  }
+
+  .tab:hover { color: #333; }
+  .tab.active { color: #1a1a1a; border-bottom-color: #1a1a1a; font-weight: 500; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ── Form elements ── */
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 0.4rem;
+  }
+
+  input[type=text], select, textarea {
+    width: 100%;
+    background: #fff;
+    border: 1px solid #e0ddd6;
+    border-radius: 8px;
+    padding: 0.625rem 0.875rem;
+    font-size: 14px;
+    color: #1a1a1a;
+    font-family: inherit;
+    transition: border-color 0.15s;
+    margin-bottom: 1rem;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #1a1a1a;
+  }
+
+  textarea { min-height: 180px; resize: vertical; line-height: 1.6; }
+
+  .field { margin-bottom: 1rem; }
+
+  select { cursor: pointer; }
+
+  /* ── Buttons ── */
+  .btn {
+    padding: 0.625rem 1.25rem;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+    border: 1px solid #e0ddd6;
+    background: #fff;
+    color: #333;
+  }
+
+  .btn:hover { background: #f0ede7; }
+
+  .btn-primary {
+    background: #1a1a1a;
+    color: #f7f6f2;
+    border-color: #1a1a1a;
+  }
+
+  .btn-primary:hover { background: #333; }
+  .btn-primary:disabled { background: #ccc; border-color: #ccc; cursor: not-allowed; }
+
+  .btn-danger { border-color: #fca5a5; color: #c0392b; background: #fff; }
+  .btn-danger:hover { background: #fef2f2; }
+
+  .btn-row { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-top: 0.5rem; }
+
+  /* ── Stats ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin: 1.25rem 0;
+  }
+
+  .stat-card {
+    background: #fff;
+    border: 1px solid #e5e3dd;
+    border-radius: 10px;
+    padding: 1rem;
+  }
+
+  .stat-label { font-size: 11px; color: #aaa; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.4rem; }
+  .stat-value { font-size: 1.4rem; font-weight: 600; color: #1a1a1a; letter-spacing: -0.02em; }
+  .stat-sub { font-size: 11px; color: #aaa; margin-top: 2px; }
+
+  /* ── Log ── */
+  .log-wrap {
+    background: #1a1a1a;
+    border-radius: 10px;
+    height: 240px;
+    overflow-y: auto;
+    padding: 1rem 1.25rem;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    margin: 1rem 0;
+  }
+
+  .log-line { color: #555; line-height: 1.9; }
+  .log-line.good { color: #4ade80; }
+  .log-line.bad { color: #f87171; }
+  .log-line.info { color: #7dd3fc; }
+  .log-line.head { color: #c9a96e; }
+  .log-line.warn { color: #fbbf24; }
+
+  /* ── Progress ── */
+  .progress-wrap {
+    background: #e5e3dd;
+    border-radius: 4px;
+    height: 6px;
+    margin: 0.5rem 0 1rem;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: #1a1a1a;
+    border-radius: 4px;
+    transition: width 0.3s;
+    width: 0%;
+  }
+
+  /* ── Results table ── */
+  .results-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 1rem 0;
+  }
+
+  .results-table th {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #e5e3dd;
+    color: #aaa;
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: #faf9f6;
+  }
+
+  .results-table td {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid #f0ede7;
+    color: #333;
+  }
+
+  .results-table tr:hover td { background: #faf9f6; }
+
+  /* ── Info boxes ── */
+  .info-box {
+    background: #f0f9f4;
+    border-left: 3px solid #2d6a4f;
+    border-radius: 0 8px 8px 0;
+    padding: 0.875rem 1rem;
+    margin: 0.75rem 0;
+    font-size: 13px;
+    color: #2d4a3e;
+  }
+
+  .warn-box {
+    background: #fef9ec;
+    border-left: 3px solid #d4a017;
+    border-radius: 0 8px 8px 0;
+    padding: 0.875rem 1rem;
+    margin: 0.75rem 0;
+    font-size: 13px;
+    color: #5a4200;
+  }
+
+  .box-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+  }
+
+  .info-box .box-label { color: #2d6a4f; }
+  .warn-box .box-label { color: #d4a017; }
+
+  canvas { max-width: 100%; margin: 1rem 0; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .badge-neutral { background: #e8f4fd; color: #1a6fa8; }
+  .badge-manic { background: #fef3c7; color: #92400e; }
+  .badge-depressive { background: #ede9fe; color: #5b21b6; }
+
+  /* connection check */
+  #connection-banner {
+    background: #fef9ec;
+    border-bottom: 1px solid #e5d68a;
+    padding: 0.75rem 2.5rem;
+    font-size: 13px;
+    color: #5a4200;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  #connection-banner.connected {
+    background: #f0f9f4;
+    border-bottom-color: #a7d7bc;
+    color: #2d4a3e;
+  }
+
+  #connection-banner.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div id="connection-banner">
+  <span class="status-dot yellow" id="banner-dot"></span>
+  <span id="banner-text">Checking connection to Ollama... Make sure Ollama is open on your Mac.</span>
+  <button class="btn" style="margin-left:auto; padding:4px 12px; font-size:12px;" onclick="checkConnection()">Retry</button>
+</div>
+
+<div class="shell">
+
+  <!-- ── SIDEBAR ── -->
+  <nav class="sidebar">
+    <div>
+      <div class="sidebar-title">IGT Simulation Runner</div>
+      <div class="sidebar-sub">Iowa Gambling Task · Research Tool</div>
+    </div>
+
+    <div class="status-line">
+      <span class="status-dot" id="ollama-dot"></span>
+      <span id="ollama-status">Checking Ollama...</span>
+    </div>
+
+    <hr class="divider">
+
+    <div>
+      <div style="font-size:11px; color:#555; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.75rem;">Your profiles</div>
+      <div class="profile-list" id="profile-list">
+        <!-- populated by JS -->
+      </div>
+      <button class="add-profile-btn" onclick="showTab('build')" style="margin-top:0.5rem;">+ Add new profile</button>
+    </div>
+
+    <hr class="divider">
+
+    <div style="font-size:12px; color:#555;">
+      <div style="margin-bottom:0.4rem; color:#888;">Completed runs</div>
+      <span id="run-count" style="font-size:1.5rem; color:#e8e4d9; font-weight:600;">0</span>
+      <span style="color:#444;"> / <span id="run-target">300</span> total planned</span>
+    </div>
+
+    <div class="sidebar-footer">
+      Runs on your Mac via Ollama.<br>
+      No data leaves your computer.
+    </div>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main class="main">
+    <h1>Simulation Runner</h1>
+    <p class="page-sub">Build your patient profiles, run the IGT simulation, and download your data.</p>
+
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('build')" id="tab-build">Build profiles</button>
+      <button class="tab" onclick="showTab('run')" id="tab-run">Run simulation</button>
+      <button class="tab" onclick="showTab('results')" id="tab-results">Results</button>
+      <button class="tab" onclick="showTab('help')" id="tab-help">How it works</button>
+    </div>
+
+    <!-- ═══ TAB: BUILD ═══ -->
+    <div class="tab-content active" id="content-build">
+
+      <div class="warn-box">
+        <div class="box-label">Before you start</div>
+        Your profile descriptions must come from real published sources — DSM-5, clinical case studies, or psychiatry textbooks. Do not use AI-generated descriptions. The simulation is only as valid as the research behind it.
+      </div>
+
+      <div class="field">
+        <label>Profile name</label>
+        <input type="text" id="p-name" placeholder="e.g. Manic Profile 1">
+      </div>
+
+      <div class="field">
+        <label>Profile type</label>
+        <select id="p-type">
+          <option value="neutral">Neutral (control — no bipolar disorder)</option>
+          <option value="manic">Manic episode (Bipolar I)</option>
+          <option value="depressive">Depressive episode (Bipolar I)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Clinical description</label>
+        <p>Paste or write your research-backed description here. Be specific — include symptoms, behavioral patterns, emotional state, and decision-making tendencies from your sources. The more detail, the better.</p>
+        <textarea id="p-desc" placeholder="Example: This participant is a 28-year-old experiencing an active manic episode of Bipolar I disorder. They present with elevated and expansive mood, decreased need for sleep (averaging 3 hours per night), pressured and rapid speech, and markedly increased goal-directed activity. They report feeling 'on top of the world' and invincible. Clinically, they show significantly heightened reward sensitivity, very low loss aversion, and poor impulse control. They have made several impulsive financial decisions in the past week despite negative consequences..."></textarea>
+      </div>
+
+      <div class="field">
+        <label>Source citation</label>
+        <input type="text" id="p-source" placeholder="e.g. American Psychiatric Association (2013). DSM-5, p. 124">
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveProfile()">Save profile</button>
+        <button class="btn" onclick="clearProfileForm()">Clear</button>
+      </div>
+
+      <div id="saved-profiles-section" style="margin-top:2rem; display:none;">
+        <h2>Saved profiles (<span id="profile-count">0</span> / 6)</h2>
+        <table class="results-table" id="profiles-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Description preview</th>
+              <th>Source</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="profiles-tbody"></tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- ═══ TAB: RUN ═══ -->
+    <div class="tab-content" id="content-run">
+
+      <div id="no-profiles-msg" class="warn-box">
+        <div class="box-label">No profiles yet</div>
+        Go to the "Build profiles" tab and add at least one profile before running the simulation.
+      </div>
+
+      <div id="run-controls" style="display:none;">
+
+        <div class="field">
+          <label>Select profile to run</label>
+          <select id="run-profile-select"></select>
+        </div>
+
+        <div class="field">
+          <label>Number of simulations for this profile</label>
+          <select id="run-count-select">
+            <option value="5">5 (quick test)</option>
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50" selected>50 (recommended)</option>
+          </select>
+        </div>
+
+        <div class="info-box">
+          <div class="box-label">What happens when you click run</div>
+          The simulation will run the selected number of complete Iowa Gambling Task sessions (100 trials each) using your profile. Each session takes about 1–2 minutes. You can watch the live log below. When done, your results are saved and ready to download.
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" id="run-btn" onclick="startSimulation()">▶ Start simulation</button>
+          <button class="btn btn-danger" id="stop-btn" onclick="stopSimulation()" style="display:none;">Stop</button>
+        </div>
+
+        <div class="progress-wrap" style="margin-top:1.25rem;">
+          <div class="progress-bar" id="run-progress"></div>
+        </div>
+        <div style="font-size:12px; color:#aaa; margin-bottom:0.5rem;" id="progress-label">Ready</div>
+
+        <div class="log-wrap" id="run-log">
+          <div class="log-line">Ready. Select a profile and click Start.</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ═══ TAB: RESULTS ═══ -->
+    <div class="tab-content" id="content-results">
+
+      <div id="no-results-msg" class="warn-box">
+        <div class="box-label">No results yet</div>
+        Run at least one simulation first.
+      </div>
+
+      <div id="results-section" style="display:none;">
+
+        <div class="stats-grid" id="results-stats"></div>
+
+        <h2>All runs</h2>
+        <table class="results-table">
+          <thead>
+            <tr>
+              <th>Run</th>
+              <th>Profile</th>
+              <th>Type</th>
+              <th>Risky %</th>
+              <th>Final balance</th>
+              <th>Top deck</th>
+            </tr>
+          </thead>
+          <tbody id="results-tbody"></tbody>
+        </table>
+
+        <div class="btn-row" style="margin-top:1.25rem;">
+          <button class="btn btn-primary" onclick="downloadCSV()">Download CSV</button>
+          <button class="btn" onclick="clearResults()">Clear results</button>
+        </div>
+
+        <div class="info-box" style="margin-top:1rem;">
+          <div class="box-label">What to do with this CSV</div>
+          Open it in Excel or Google Sheets. Each row is one complete simulation run (100 trials). You can use it to compare risky choice percentages, final balances, and learning patterns across your three profile groups.
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ═══ TAB: HELP ═══ -->
+    <div class="tab-content" id="content-help">
+
+      <h2>How the simulation works</h2>
+      <p>This tool sends your patient profile to Llama 3 (running locally on your Mac) and asks it to play 100 rounds of the Iowa Gambling Task while staying in character. Here's the exact sequence for each trial:</p>
+
+      <ol style="font-size:14px; color:#555; padding-left:1.25rem; line-height:2;">
+        <li>The tool builds a prompt with your profile + current trial number + current balance + recent choices</li>
+        <li>It sends the prompt to Llama and asks it to respond with only A, B, C, or D</li>
+        <li>The tool applies the real IGT reward/penalty structure for that deck</li>
+        <li>It records the choice, updates the balance, and moves to the next trial</li>
+        <li>After 100 trials, one complete run is saved to your results</li>
+      </ol>
+
+      <h2>The four decks</h2>
+      <table class="results-table">
+        <thead><tr><th>Deck</th><th>Reward per card</th><th>Net per 10 cards</th><th>Type</th></tr></thead>
+        <tbody>
+          <tr><td>A</td><td>+$100</td><td style="color:#c0392b">−$250</td><td><span class="badge badge-manic">Risky</span></td></tr>
+          <tr><td>B</td><td>+$100</td><td style="color:#c0392b">−$250</td><td><span class="badge badge-manic">Risky</span></td></tr>
+          <tr><td>C</td><td>+$50</td><td style="color:#27ae60">+$250</td><td><span class="badge badge-neutral">Safe</span></td></tr>
+          <tr><td>D</td><td>+$50</td><td style="color:#27ae60">+$250</td><td><span class="badge badge-neutral">Safe</span></td></tr>
+        </tbody>
+      </table>
+
+      <h2>What Ollama needs to be running</h2>
+      <p>Make sure the Ollama app is open on your Mac (look for the llama icon in your menu bar). If you see a red connection status at the top, click the Retry button or open Ollama from your Applications folder.</p>
+
+      <h2>Questions?</h2>
+      <p>Message your mentor on Discord. Don't get stuck — if something isn't working, a screenshot goes a long way.</p>
+
+    </div>
+
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+
+// ── State ──
+let profiles = JSON.parse(localStorage.getItem('igt_profiles') || '[]');
+let results = JSON.parse(localStorage.getItem('igt_results') || '[]');
+let running = false;
+let stopFlag = false;
+
+// ── IGT deck outcomes ──
+function getOutcome(deck, trial) {
+  if (deck === 'A') {
+    const gain = 100;
+    const loss = (trial % 10 === 0) ? [150,200,150,200,300,150,200,150,300,200][Math.floor(Math.random()*10)] : 0;
+    return { gain, loss };
+  }
+  if (deck === 'B') {
+    return { gain: 100, loss: (trial % 10 === 0) ? 1250 : 0 };
+  }
+  if (deck === 'C') {
+    const penalties = [0,25,0,50,0,25,0,50,0,25];
+    return { gain: 50, loss: penalties[(trial - 1) % 10] };
+  }
+  if (deck === 'D') {
+    return { gain: 50, loss: (trial % 5 === 0) ? 250 : 0 };
+  }
+  return { gain: 0, loss: 0 };
+}
+
+// ── Connection check ──
+async function checkConnection() {
+  const dot = document.getElementById('ollama-dot');
+  const status = document.getElementById('ollama-status');
+  const banner = document.getElementById('connection-banner');
+  const bannerDot = document.getElementById('banner-dot');
+  const bannerText = document.getElementById('banner-text');
+
+  try {
+    const res = await fetch('http://localhost:11434/api/tags', { signal: AbortSignal.timeout(3000) });
+    if (res.ok) {
+      dot.className = 'status-dot green';
+      status.textContent = 'Ollama connected';
+      banner.className = 'connected';
+      bannerDot.className = 'status-dot green';
+      bannerText.textContent = 'Ollama is running and ready.';
+      setTimeout(() => banner.className = 'hidden', 3000);
+    } else { throw new Error(); }
+  } catch {
+    dot.className = 'status-dot red';
+    status.textContent = 'Ollama not found';
+    banner.className = '';
+    bannerDot.className = 'status-dot red';
+    bannerText.textContent = 'Cannot connect to Ollama. Make sure the app is open on your Mac, then click Retry.';
+  }
+}
+
+// ── Ask Ollama ──
+async function askLlama(profileDesc, profileType, trial, balance, recentChoices) {
+  const recentStr = recentChoices.length > 0
+    ? `Your last ${Math.min(5, recentChoices.length)} choices were: ${recentChoices.slice(-5).join(', ')}.`
+    : 'This is your first choice.';
+
+  const prompt = `You are simulating a research participant in a psychology study. Stay completely in character as described below.
+
+--- YOUR PROFILE ---
+${profileDesc}
+
+--- TASK ---
+You are sitting in front of four card decks: A, B, C, and D.
+Each card gives you money, takes money away, or both.
+You started with $2,000. Your goal is to earn as much as possible.
+You do not know which decks are good or bad.
+
+Current trial: ${trial} of 100
+Your balance: $${balance}
+${recentStr}
+
+--- YOUR RESPONSE ---
+Based on your personality and current mental state as described above, which deck do you choose?
+Respond with ONLY a single letter: A, B, C, or D. No explanation.`;
+
+  const response = await fetch('http://localhost:11434/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'llama3',
+      prompt: prompt,
+      stream: false,
+      options: { temperature: 0.7, num_predict: 3 }
+    })
+  });
+
+  const data = await response.json();
+  const text = (data.response || '').trim().toUpperCase();
+  const match = text.match(/[ABCD]/);
+  return match ? match[0] : ['A','B','C','D'][Math.floor(Math.random()*4)];
+}
+
+// ── Tabs ──
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('content-' + name).classList.add('active');
+  if (name === 'run') refreshRunTab();
+  if (name === 'results') refreshResultsTab();
+}
+
+// ── Profile management ──
+function saveProfile() {
+  const name = document.getElementById('p-name').value.trim();
+  const type = document.getElementById('p-type').value;
+  const desc = document.getElementById('p-desc').value.trim();
+  const source = document.getElementById('p-source').value.trim();
+
+  if (!name || !desc) { alert('Please fill in the profile name and description.'); return; }
+
+  profiles.push({ id: Date.now(), name, type, desc, source });
+  localStorage.setItem('igt_profiles', JSON.stringify(profiles));
+  clearProfileForm();
+  renderProfiles();
+  renderSidebarProfiles();
+}
+
+function clearProfileForm() {
+  document.getElementById('p-name').value = '';
+  document.getElementById('p-desc').value = '';
+  document.getElementById('p-source').value = '';
+}
+
+function deleteProfile(id) {
+  if (!confirm('Delete this profile?')) return;
+  profiles = profiles.filter(p => p.id !== id);
+  localStorage.setItem('igt_profiles', JSON.stringify(profiles));
+  renderProfiles();
+  renderSidebarProfiles();
+}
+
+function renderProfiles() {
+  const tbody = document.getElementById('profiles-tbody');
+  const section = document.getElementById('saved-profiles-section');
+  document.getElementById('profile-count').textContent = profiles.length;
+
+  if (profiles.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+
+  tbody.innerHTML = profiles.map(p => `
+    <tr>
+      <td><strong>${p.name}</strong></td>
+      <td><span class="badge badge-${p.type}">${p.type}</span></td>
+      <td style="color:#888; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.desc.substring(0, 60)}...</td>
+      <td style="color:#aaa; font-size:12px;">${p.source || '—'}</td>
+      <td><button class="btn btn-danger" style="padding:3px 10px; font-size:11px;" onclick="deleteProfile(${p.id})">Delete</button></td>
+    </tr>
+  `).join('');
+}
+
+function renderSidebarProfiles() {
+  const list = document.getElementById('profile-list');
+  if (profiles.length === 0) {
+    list.innerHTML = '<div style="font-size:12px; color:#444;">No profiles yet</div>';
+    return;
+  }
+  list.innerHTML = profiles.map(p => `
+    <div class="profile-btn">
+      <div class="profile-btn-name">${p.name}</div>
+      <div class="profile-btn-type">${p.type} · ${p.source ? p.source.substring(0,30) + '...' : 'No source'}</div>
+    </div>
+  `).join('');
+}
+
+// ── Run tab ──
+function refreshRunTab() {
+  const sel = document.getElementById('run-profile-select');
+  const controls = document.getElementById('run-controls');
+  const noMsg = document.getElementById('no-profiles-msg');
+
+  if (profiles.length === 0) {
+    noMsg.style.display = 'block';
+    controls.style.display = 'none';
+    return;
+  }
+
+  noMsg.style.display = 'none';
+  controls.style.display = 'block';
+  sel.innerHTML = profiles.map(p => `<option value="${p.id}">${p.name} (${p.type})</option>`).join('');
+}
+
+// ── Simulation ──
+async function startSimulation() {
+  if (running) return;
+
+  const profileId = parseInt(document.getElementById('run-profile-select').value);
+  const profile = profiles.find(p => p.id === profileId);
+  if (!profile) return;
+
+  const numRuns = parseInt(document.getElementById('run-count-select').value);
+
+  running = true;
+  stopFlag = false;
+  document.getElementById('run-btn').disabled = true;
+  document.getElementById('stop-btn').style.display = 'inline-block';
+
+  const log = document.getElementById('run-log');
+  log.innerHTML = '';
+
+  const addLog = (text, cls = '') => {
+    const d = document.createElement('div');
+    d.className = 'log-line ' + cls;
+    d.textContent = text;
+    log.appendChild(d);
+    log.scrollTop = log.scrollHeight;
+  };
+
+  addLog(`Starting: ${profile.name} (${profile.type}) — ${numRuns} runs`, 'head');
+  addLog('─'.repeat(55));
+
+  for (let run = 1; run <= numRuns; run++) {
+    if (stopFlag) { addLog('Stopped by user.', 'warn'); break; }
+
+    addLog(`Run ${run} of ${numRuns}...`, 'info');
+
+    let balance = 2000;
+    const choices = [];
+    const balances = [];
+
+    for (let trial = 1; trial <= 100; trial++) {
+      if (stopFlag) break;
+
+      let choice;
+      try {
+        choice = await askLlama(profile.desc, profile.type, trial, balance, choices);
+      } catch (e) {
+        addLog(`Error on trial ${trial}: ${e.message}. Is Ollama running?`, 'bad');
+        stopFlag = true;
+        break;
+      }
+
+      const { gain, loss } = getOutcome(choice, trial);
+      balance += gain - loss;
+      choices.push(choice);
+      balances.push(balance);
+
+      if (trial % 20 === 0) {
+        const risky = choices.filter(c => c === 'A' || c === 'B').length;
+        addLog(`  Trial ${trial}: last choice ${choice} | Balance $${balance} | Risky so far: ${Math.round(risky/trial*100)}%`);
+      }
+    }
+
+    if (!stopFlag) {
+      const risky = choices.filter(c => c === 'A' || c === 'B').length;
+      const deckCounts = { A: 0, B: 0, C: 0, D: 0 };
+      choices.forEach(c => deckCounts[c]++);
+      const topDeck = Object.entries(deckCounts).sort((a,b)=>b[1]-a[1])[0][0];
+
+      const runResult = {
+        id: Date.now() + run,
+        run,
+        profileId,
+        profileName: profile.name,
+        profileType: profile.type,
+        riskyPct: Math.round(risky / choices.length * 100),
+        finalBalance: balance,
+        topDeck,
+        choices,
+        balances,
+        timestamp: new Date().toISOString()
+      };
+
+      results.push(runResult);
+      localStorage.setItem('igt_results', JSON.stringify(results));
+      document.getElementById('run-count').textContent = results.length;
+
+      addLog(`  ✓ Run ${run} complete | Risky: ${runResult.riskyPct}% | Balance: $${balance} | Top deck: ${topDeck}`, 'good');
+    }
+
+    const pct = Math.round(run / numRuns * 100);
+    document.getElementById('run-progress').style.width = pct + '%';
+    document.getElementById('progress-label').textContent = `${run} of ${numRuns} runs complete`;
+  }
+
+  addLog('─'.repeat(55));
+  addLog('Done. Go to the Results tab to see your data.', 'head');
+
+  running = false;
+  document.getElementById('run-btn').disabled = false;
+  document.getElementById('stop-btn').style.display = 'none';
+}
+
+function stopSimulation() {
+  stopFlag = true;
+}
+
+// ── Results ──
+function refreshResultsTab() {
+  const noMsg = document.getElementById('no-results-msg');
+  const section = document.getElementById('results-section');
+
+  if (results.length === 0) {
+    noMsg.style.display = 'block';
+    section.style.display = 'none';
+    return;
+  }
+
+  noMsg.style.display = 'none';
+  section.style.display = 'block';
+
+  // Stats by group
+  const groups = ['neutral', 'manic', 'depressive'];
+  const statsHtml = groups.map(g => {
+    const runs = results.filter(r => r.profileType === g);
+    if (runs.length === 0) return '';
+    const avgRisky = Math.round(runs.reduce((s, r) => s + r.riskyPct, 0) / runs.length);
+    const avgBalance = Math.round(runs.reduce((s, r) => s + r.finalBalance, 0) / runs.length);
+    return `
+      <div class="stat-card">
+        <div class="stat-label">${g}</div>
+        <div class="stat-value">${avgRisky}%</div>
+        <div class="stat-sub">avg risky · $${avgBalance.toLocaleString()} avg</div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('results-stats').innerHTML = statsHtml ||
+    '<div class="stat-card"><div class="stat-label">Runs</div><div class="stat-value">' + results.length + '</div></div>';
+
+  // Table
+  const tbody = document.getElementById('results-tbody');
+  tbody.innerHTML = results.map((r, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${r.profileName}</td>
+      <td><span class="badge badge-${r.profileType}">${r.profileType}</span></td>
+      <td>${r.riskyPct}%</td>
+      <td style="color:${r.finalBalance >= 2000 ? '#27ae60' : '#c0392b'}">$${r.finalBalance.toLocaleString()}</td>
+      <td>Deck ${r.topDeck}</td>
+    </tr>
+  `).join('');
+}
+
+function clearResults() {
+  if (!confirm('Clear all results? This cannot be undone.')) return;
+  results = [];
+  localStorage.setItem('igt_results', JSON.stringify(results));
+  document.getElementById('run-count').textContent = '0';
+  refreshResultsTab();
+}
+
+function downloadCSV() {
+  const rows = [['run', 'profile_name', 'profile_type', 'risky_pct', 'final_balance', 'top_deck', 'timestamp']];
+  results.forEach(r => rows.push([r.run, r.profileName, r.profileType, r.riskyPct, r.finalBalance, r.topDeck, r.timestamp]));
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'IGT_results_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+// ── Init ──
+renderProfiles();
+renderSidebarProfiles();
+checkConnection();
+setInterval(checkConnection, 15000);
+
+</script>
+</body>
+</html>
