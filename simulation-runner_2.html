@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IGT Simulation Runner</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f2f0eb; color: #1a1a1a; min-height: 100vh; }
+
+  .nav { background: #1a1a1a; display: flex; gap: 0; border-bottom: 1px solid #333; overflow-x: auto; }
+  .nav-tab { padding: 14px 22px; color: #888; font-size: 13px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; letter-spacing: 0.02em; white-space: nowrap; }
+  .nav-tab:hover { color: #ccc; }
+  .nav-tab.active { color: #fff; border-bottom-color: #6c8ebf; }
+
+  .page { max-width: 860px; margin: 0 auto; padding: 36px 24px; }
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+  .subtitle { font-size: 14px; color: #666; margin-bottom: 28px; }
+  h2 { font-size: 15px; font-weight: 600; margin: 24px 0 10px; }
+
+  .card { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 16px; border: 1px solid #e5e3de; }
+  .card-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #999; margin-bottom: 10px; }
+
+  label { font-size: 13px; font-weight: 500; display: block; margin-bottom: 5px; color: #444; }
+  input[type=text], input[type=number], select, textarea {
+    width: 100%; padding: 9px 12px; border: 1px solid #ddd; border-radius: 7px;
+    font-size: 13px; font-family: inherit; background: #fafafa; color: #1a1a1a;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #6c8ebf; background: #fff; }
+  textarea { min-height: 100px; resize: vertical; line-height: 1.5; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .form-group { margin-bottom: 14px; }
+
+  .btn { padding: 9px 18px; border-radius: 7px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: all 0.15s; }
+  .btn-primary { background: #1a1a1a; color: #fff; }
+  .btn-primary:hover { background: #333; }
+  .btn-primary:disabled { background: #999; cursor: not-allowed; }
+  .btn-danger { background: #c0392b; color: #fff; }
+  .btn-danger:hover { background: #a93226; }
+  .btn-outline { background: transparent; border: 1px solid #ddd; color: #444; }
+  .btn-outline:hover { border-color: #999; color: #1a1a1a; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+  .profile-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #fafafa; border: 1px solid #e5e3de; border-radius: 8px; margin-bottom: 8px; }
+  .profile-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .profile-name { font-size: 13px; font-weight: 500; flex: 1; }
+  .profile-type { font-size: 11px; color: #888; background: #f0eee9; padding: 2px 8px; border-radius: 10px; }
+  .profile-actions { display: flex; gap: 6px; }
+
+  .status-bar { background: #1a1a1a; color: #ccc; font-size: 12px; font-family: 'SF Mono', Menlo, monospace; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; min-height: 44px; line-height: 1.6; white-space: pre-wrap; }
+  .progress-outer { background: #e5e3de; border-radius: 4px; height: 6px; margin-bottom: 20px; overflow: hidden; }
+  .progress-inner { background: #6c8ebf; height: 100%; border-radius: 4px; transition: width 0.3s; }
+
+  .results-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+  .result-card { background: #fff; border: 1px solid #e5e3de; border-radius: 10px; padding: 16px; }
+  .result-card .profile-name-lg { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #999; margin-bottom: 6px; }
+  .result-card .big-num { font-size: 32px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .result-card .sub { font-size: 12px; color: #888; }
+  .results-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .results-table th { text-align: left; padding: 8px 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #999; border-bottom: 1px solid #e5e3de; }
+  .results-table td { padding: 9px 10px; border-bottom: 1px solid #f0eee9; }
+  .results-table tr:last-child td { border-bottom: none; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+  .badge-neutral { background: #e8f4e8; color: #2d6a4f; }
+  .badge-manic { background: #fdecea; color: #c0392b; }
+  .badge-depressive { background: #e8eef8; color: #2c5282; }
+  .badge-custom { background: #f5f0ff; color: #6b3fa0; }
+  .badge-warn { background: #fef3cd; color: #8a6d00; }
+
+  .settings-group { background: #fafafa; border: 1px solid #e5e3de; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .settings-group h3 { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: #444; }
+  .range-row { display: flex; align-items: center; gap: 12px; }
+  .range-row input[type=range] { flex: 1; }
+  .range-val { font-size: 13px; font-weight: 600; min-width: 32px; text-align: right; color: #6c8ebf; }
+  .info-box { background: #eef3fb; border-left: 3px solid #6c8ebf; border-radius: 0 6px 6px 0; padding: 10px 14px; font-size: 12px; color: #2c4a7c; margin-top: 10px; line-height: 1.6; }
+  .warn-box { background: #fef9ec; border-left: 3px solid #d4a017; border-radius: 0 6px 6px 0; padding: 10px 14px; font-size: 12px; color: #5a4200; margin-top: 10px; line-height: 1.6; }
+  .ok-box { background: #eaf6ec; border-left: 3px solid #2d6a4f; border-radius: 0 6px 6px 0; padding: 10px 14px; font-size: 12px; color: #1e4632; margin-top: 10px; line-height: 1.6; }
+
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .toggle-label { font-size: 13px; color: #444; }
+  .toggle { position: relative; width: 40px; height: 22px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: #ccc; border-radius: 22px; cursor: pointer; transition: 0.2s; }
+  .slider:before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; }
+  input:checked + .slider { background: #6c8ebf; }
+  input:checked + .slider:before { transform: translateX(18px); }
+
+  .chart-wrap { background: #fff; border: 1px solid #e5e3de; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+  .section { display: none; }
+  .section.active { display: block; }
+  .empty-state { text-align: center; padding: 40px; color: #999; font-size: 14px; }
+  .dot-neutral { background: #2d6a4f; }
+  .dot-manic { background: #c0392b; }
+  .dot-depressive { background: #2c5282; }
+  .dot-custom { background: #6b3fa0; }
+  .flex-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .spacer { flex: 1; }
+  small { font-size: 11px; color: #999; display: block; margin-top: 4px; }
+  code { background: #f0eee9; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-tab active" onclick="showTab('profiles')">Build profiles</div>
+  <div class="nav-tab" onclick="showTab('settings')">⚙ Settings</div>
+  <div class="nav-tab" onclick="showTab('run')">Run simulation</div>
+  <div class="nav-tab" onclick="showTab('results')">Results</div>
+  <div class="nav-tab" onclick="showTab('help')">How it works</div>
+</div>
+
+<!-- ═══ PROFILES ═══ -->
+<div class="section active" id="tab-profiles">
+  <div class="page">
+    <h1>Build profiles</h1>
+    <p class="subtitle">Create the patient profiles your simulation will use. Each profile needs a name, type, and clinical description.</p>
+
+    <div class="card">
+      <div class="card-label">Add a new profile</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Profile name</label>
+          <input type="text" id="p-name" placeholder="e.g. N-F (Neutral Female)">
+        </div>
+        <div class="form-group">
+          <label>Profile type</label>
+          <select id="p-type">
+            <option value="neutral">Neutral</option>
+            <option value="manic">Manic</option>
+            <option value="depressive">Depressive</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Clinical description</label>
+        <textarea id="p-desc" placeholder="Paste your research-backed clinical description here."></textarea>
+        <small>Tip: end the description with a short line translating symptoms into decision behavior, e.g. "In games involving money, this person is highly drawn to big wins and shrugs off losses." Clinical history alone is hard for the model to translate into card choices.</small>
+      </div>
+      <button class="btn btn-primary" onclick="addProfile()">Add profile</button>
+    </div>
+
+    <h2>Your profiles (<span id="profile-count">0</span>)</h2>
+    <div id="profile-list">
+      <div class="empty-state">No profiles yet. Add at least one above to get started.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SETTINGS ═══ -->
+<div class="section" id="tab-settings">
+  <div class="page">
+    <h1>Settings</h1>
+    <p class="subtitle">Adjust model behavior and verify the task engine before running real simulations.</p>
+
+    <div class="settings-group">
+      <h3>Step 0: Verify the payoff engine (do this first)</h3>
+      <p style="font-size:12px;color:#666;line-height:1.6;margin-bottom:10px;">
+        This runs three scripted players through the task with no AI involved: one who always picks Deck A, one who always picks Deck C, and one who picks randomly. It confirms the deck math matches the published IGT before you trust any model results.
+      </p>
+      <button class="btn btn-outline btn-sm" onclick="runSanityCheck()">Run payoff sanity check</button>
+      <div id="sanity-output"></div>
+    </div>
+
+    <div class="settings-group">
+      <h3>Model</h3>
+      <div class="form-group">
+        <label>Ollama model</label>
+        <select id="s-model">
+          <option value="llama3">llama3 (8B)</option>
+          <option value="llama3:70b">llama3:70b (needs ~40GB RAM)</option>
+          <option value="mistral" selected>mistral</option>
+          <option value="mixtral">mixtral (needs ~26GB RAM)</option>
+          <option value="llama3.1">llama3.1</option>
+        </select>
+        <small>To download a model: open Terminal and run <code>ollama pull mistral</code> (swap in the model name you want).</small>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <h3>Temperature</h3>
+      <div class="range-row">
+        <span style="font-size:12px;color:#999;">Predictable</span>
+        <input type="range" id="s-temp" min="0" max="1" step="0.05" value="0.7" oninput="document.getElementById('temp-val').textContent=this.value">
+        <span style="font-size:12px;color:#999;">Random</span>
+        <span class="range-val" id="temp-val">0.7</span>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <h3>Prompt mode</h3>
+      <div class="toggle-row">
+        <span class="toggle-label">Scratchpad mode (one in-character sentence before choosing)</span>
+        <label class="toggle">
+          <input type="checkbox" id="s-scratchpad" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="info-box">
+        The model's raw text response on every trial is now saved for the most recent run. After a run, use "Export raw responses" on the Run tab to audit exactly what the model said and how it was parsed. If results look strange, always check the raw responses first.
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <h3>Simulation size</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Runs per profile</label>
+          <input type="number" id="s-runs" value="5" min="1" max="100">
+          <small>Use 5 for testing, 50 for full data collection.</small>
+        </div>
+        <div class="form-group">
+          <label>Trials per run</label>
+          <input type="number" id="s-trials" value="100" min="10" max="100">
+          <small>Standard IGT is 100 trials.</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <h3>Ollama connection</h3>
+      <div class="flex-row">
+        <div id="conn-status" style="font-size:13px;color:#999;">Not checked</div>
+        <span class="spacer"></span>
+        <button class="btn btn-outline btn-sm" onclick="checkConnection()">Test connection</button>
+      </div>
+      <div class="warn-box" style="margin-top:12px;">
+        If connection fails: open Terminal and run <code>launchctl setenv OLLAMA_ORIGINS "*"</code>, quit Ollama fully (<code>ps aux | grep ollama</code>, kill the parent PID), then reopen Ollama from Applications.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ RUN ═══ -->
+<div class="section" id="tab-run">
+  <div class="page">
+    <h1>Run simulation</h1>
+    <p class="subtitle">Make sure Ollama is open and you have run the payoff sanity check at least once.</p>
+
+    <div class="card">
+      <div class="card-label">Current configuration</div>
+      <div id="run-summary" style="font-size:13px;color:#555;line-height:2;">Loading...</div>
+    </div>
+
+    <div class="status-bar" id="status-log">Ready. Press Start to begin.</div>
+    <div class="progress-outer"><div class="progress-inner" id="progress-bar" style="width:0%"></div></div>
+
+    <div class="flex-row">
+      <button class="btn btn-primary" id="btn-start" onclick="startSimulation()">▶ Start simulation</button>
+      <button class="btn btn-danger" id="btn-stop" onclick="stopSimulation()" style="display:none;">■ Stop</button>
+      <span class="spacer"></span>
+      <button class="btn btn-outline btn-sm" onclick="exportCSV()">Export results CSV</button>
+      <button class="btn btn-outline btn-sm" onclick="exportRawResponses()">Export raw responses</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ RESULTS ═══ -->
+<div class="section" id="tab-results">
+  <div class="page">
+    <h1>Results</h1>
+    <p class="subtitle">Summary across all completed simulation runs.</p>
+
+    <div class="results-grid" id="results-summary"></div>
+
+    <div class="chart-wrap">
+      <h2 style="margin-top:0;">Risky choice % by profile</h2>
+      <canvas id="chart-risky" height="120"></canvas>
+    </div>
+
+    <div class="chart-wrap">
+      <h2 style="margin-top:0;">Average final balance by profile</h2>
+      <canvas id="chart-balance" height="120"></canvas>
+    </div>
+
+    <h2>All runs</h2>
+    <div style="overflow-x:auto;">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Run</th>
+            <th>Profile</th>
+            <th>Type</th>
+            <th>Risky %</th>
+            <th>Final balance</th>
+            <th>Top deck</th>
+            <th>Parse issues</th>
+            <th>Model</th>
+            <th>Temp</th>
+            <th>Mode</th>
+          </tr>
+        </thead>
+        <tbody id="results-body"></tbody>
+      </table>
+    </div>
+
+    <div style="margin-top:16px;">
+      <button class="btn btn-outline btn-sm" onclick="clearResults()">Clear all results</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ HELP ═══ -->
+<div class="section" id="tab-help">
+  <div class="page">
+    <h1>How it works</h1>
+    <p class="subtitle">What the simulation is doing under the hood.</p>
+
+    <div class="card">
+      <div class="card-label">The IGT deck structure (Bechara et al., 1994)</div>
+      <table class="results-table">
+        <thead><tr><th>Deck</th><th>Win per card</th><th>Losses per 10 cards</th><th>Net per 10 cards</th><th>Type</th></tr></thead>
+        <tbody>
+          <tr><td>A</td><td>+$100</td><td>5 losses totaling $1,250</td><td style="color:#c0392b">−$250</td><td><span class="badge badge-manic">Risky</span></td></tr>
+          <tr><td>B</td><td>+$100</td><td>1 loss of $1,250</td><td style="color:#c0392b">−$250</td><td><span class="badge badge-manic">Risky</span></td></tr>
+          <tr><td>C</td><td>+$50</td><td>5 losses totaling $250</td><td style="color:#2d6a4f">+$250</td><td><span class="badge badge-neutral">Safe</span></td></tr>
+          <tr><td>D</td><td>+$50</td><td>1 loss of $250</td><td style="color:#2d6a4f">+$250</td><td><span class="badge badge-neutral">Safe</span></td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:12px;color:#666;margin-top:10px;line-height:1.6;">
+        Loss positions are shuffled within each block of 10 draws per deck, so runs are not identical. A player who always picks A or B ends around −$500. A player who always picks C or D ends around $4,500. If your results ever show a 100%-risky player finishing above $2,000, something is broken. Run the sanity check in Settings.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-label">What happens each trial</div>
+      <ol style="font-size:13px;color:#555;padding-left:1.2rem;line-height:2.2;">
+        <li>The tool builds a prompt with the profile, the trial number, the current balance, per-deck totals so far, and the most recent outcome</li>
+        <li>If scratchpad mode is ON, the model writes one in-character sentence, then the deck letter on its own line</li>
+        <li>The tool parses the letter (strict parse first, fallbacks logged), applies the real IGT payoff, and records everything including the raw model response</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Troubleshooting</div>
+      <ol style="font-size:13px;color:#555;padding-left:1.2rem;line-height:2.2;">
+        <li><strong>Always run the payoff sanity check first.</strong> Never interpret model results on an unverified task.</li>
+        <li><strong>Check parse issues in the Results table.</strong> If a run shows many parse issues, the model isn't following the response format. Export raw responses and read them.</li>
+        <li><strong>If all profiles behave identically on a verified engine with clean parses,</strong> that is a real finding about the model, and it is now defensible.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Questions?</div>
+      <p style="font-size:13px;color:#555;">Message your mentor on Discord. Include your exported CSV and, if results look odd, the raw responses file.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──
+let profiles = JSON.parse(localStorage.getItem('igt_profiles') || '[]');
+let results = JSON.parse(localStorage.getItem('igt_results_v2') || '[]');
+let running = false;
+let stopFlag = false;
+let lastRunRawLog = [];  // raw model responses for the most recent completed batch
+
+// ═══════════════════════════════════════════════
+// CANONICAL IGT PAYOFF ENGINE (Bechara et al., 1994)
+// A: +100/card, 5 losses per 10 cards totaling 1250 (net −250/10)
+// B: +100/card, 1 loss of 1250 per 10 cards (net −250/10)
+// C: +50/card, 5 losses per 10 cards totaling 250 (net +250/10)
+// D: +50/card, 1 loss of 250 per 10 cards (net +250/10)
+// Loss positions are shuffled within each block of 10 draws per deck.
+// ═══════════════════════════════════════════════
+const DECK_CONFIG = {
+  A: { gain: 100, blockLosses: [150, 200, 250, 300, 350] },
+  B: { gain: 100, blockLosses: [1250] },
+  C: { gain: 50,  blockLosses: [25, 25, 50, 75, 75] },
+  D: { gain: 50,  blockLosses: [250] }
+};
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function makeDeckState() {
+  const state = {};
+  for (const d of ['A','B','C','D']) state[d] = { drawn: 0, block: null };
+  return state;
+}
+
+function newBlock(deck) {
+  // Returns an array of 10 loss amounts (0 where no loss), shuffled positions
+  const losses = DECK_CONFIG[deck].blockLosses;
+  const block = new Array(10).fill(0);
+  const positions = shuffle([0,1,2,3,4,5,6,7,8,9]).slice(0, losses.length);
+  positions.forEach((pos, i) => { block[pos] = losses[i]; });
+  return block;
+}
+
+function drawCard(deckState, deck) {
+  const ds = deckState[deck];
+  if (ds.drawn % 10 === 0) ds.block = newBlock(deck);
+  const posInBlock = ds.drawn % 10;
+  const loss = ds.block[posInBlock];
+  ds.drawn++;
+  return { gain: DECK_CONFIG[deck].gain, loss };
+}
+
+// ═══ Payoff sanity check (no AI) ═══
+function runSanityCheck() {
+  const agents = {
+    'Always A': () => 'A',
+    'Always C': () => 'C',
+    'Random': () => ['A','B','C','D'][Math.floor(Math.random()*4)]
+  };
+  let html = '<table class="results-table" style="margin-top:12px;"><thead><tr><th>Scripted player</th><th>Final balance</th><th>Expected</th><th>Status</th></tr></thead><tbody>';
+  let allPass = true;
+  for (const [name, pick] of Object.entries(agents)) {
+    const deckState = makeDeckState();
+    let balance = 2000;
+    for (let t = 1; t <= 100; t++) {
+      const { gain, loss } = drawCard(deckState, pick());
+      balance += gain - loss;
+    }
+    let expected, pass;
+    if (name === 'Always A') { expected = 'exactly −$500'; pass = balance === -500; }
+    else if (name === 'Always C') { expected = 'exactly $4,500'; pass = balance === 4500; }
+    else { expected = 'roughly $1,000 to $3,000'; pass = balance > -1500 && balance < 5000; }
+    if (!pass) allPass = false;
+    html += `<tr><td>${name}</td><td>$${balance.toLocaleString()}</td><td>${expected}</td><td>${pass ? '✓' : '✗ FAIL'}</td></tr>`;
+  }
+  html += '</tbody></table>';
+  html += allPass
+    ? '<div class="ok-box">Payoff engine verified. Risky decks lose money over time, safe decks gain. You can trust model results run on this version.</div>'
+    : '<div class="warn-box">Something is wrong with the payoff engine. Do not run simulations until this passes. Contact your mentor.</div>';
+  document.getElementById('sanity-output').innerHTML = html;
+}
+
+// ── Profile management ──
+function addProfile() {
+  const name = document.getElementById('p-name').value.trim();
+  const type = document.getElementById('p-type').value;
+  const desc = document.getElementById('p-desc').value.trim();
+  if (!name || !desc) { alert('Please fill in both the profile name and description.'); return; }
+  profiles.push({ id: Date.now(), name, type, desc });
+  localStorage.setItem('igt_profiles', JSON.stringify(profiles));
+  document.getElementById('p-name').value = '';
+  document.getElementById('p-desc').value = '';
+  renderProfiles();
+}
+
+function deleteProfile(id) {
+  if (!confirm('Delete this profile?')) return;
+  profiles = profiles.filter(p => p.id !== id);
+  localStorage.setItem('igt_profiles', JSON.stringify(profiles));
+  renderProfiles();
+}
+
+function renderProfiles() {
+  const list = document.getElementById('profile-list');
+  document.getElementById('profile-count').textContent = profiles.length;
+  if (profiles.length === 0) {
+    list.innerHTML = '<div class="empty-state">No profiles yet. Add at least one above to get started.</div>';
+    return;
+  }
+  list.innerHTML = profiles.map(p => `
+    <div class="profile-item">
+      <div class="profile-dot dot-${p.type}"></div>
+      <div class="profile-name">${p.name}</div>
+      <div class="profile-type">${p.type}</div>
+      <div class="profile-actions">
+        <button class="btn btn-outline btn-sm" onclick="deleteProfile(${p.id})">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Connection check ──
+async function checkConnection() {
+  const el = document.getElementById('conn-status');
+  el.textContent = 'Checking...';
+  el.style.color = '#999';
+  try {
+    await fetch('http://localhost:11434', { signal: AbortSignal.timeout(3000) });
+    el.textContent = '✓ Ollama is running';
+    el.style.color = '#2d6a4f';
+  } catch {
+    el.textContent = '✗ Cannot connect to Ollama. See troubleshooting below.';
+    el.style.color = '#c0392b';
+  }
+}
+
+// ── Run summary ──
+function updateRunSummary() {
+  const model = document.getElementById('s-model')?.value || 'mistral';
+  const runs = document.getElementById('s-runs')?.value || 5;
+  const trials = document.getElementById('s-trials')?.value || 100;
+  const temp = document.getElementById('s-temp')?.value || 0.7;
+  const scratchpad = document.getElementById('s-scratchpad')?.checked;
+  const total = profiles.length * runs;
+  document.getElementById('run-summary').innerHTML = `
+    Profiles: <strong>${profiles.length}</strong> &nbsp;|&nbsp;
+    Runs each: <strong>${runs}</strong> &nbsp;|&nbsp;
+    Trials per run: <strong>${trials}</strong> &nbsp;|&nbsp;
+    Model: <strong>${model}</strong> &nbsp;|&nbsp;
+    Temperature: <strong>${temp}</strong> &nbsp;|&nbsp;
+    Scratchpad: <strong>${scratchpad ? 'ON' : 'OFF'}</strong><br>
+    <span style="color:#6c8ebf;">Total simulations: ${total}</span>
+  `;
+}
+
+// ── Build prompt ──
+// History is presented as per-deck summaries plus the last outcome only.
+// A literal sequence of recent letters invites the model to pattern-complete
+// its own choices, which swamps the persona. Summaries avoid that.
+function buildPrompt(profile, trial, balance, deckTallies, lastOutcome, scratchpad) {
+  const tallyStr = `Deck A: drawn ${deckTallies.A.n} times (won $${deckTallies.A.won}, lost $${deckTallies.A.lost})
+Deck B: drawn ${deckTallies.B.n} times (won $${deckTallies.B.won}, lost $${deckTallies.B.lost})
+Deck C: drawn ${deckTallies.C.n} times (won $${deckTallies.C.won}, lost $${deckTallies.C.lost})
+Deck D: drawn ${deckTallies.D.n} times (won $${deckTallies.D.won}, lost $${deckTallies.D.lost})`;
+
+  const lastStr = lastOutcome
+    ? `On your last turn you drew from Deck ${lastOutcome.choice}: won $${lastOutcome.gain}, lost $${lastOutcome.loss}.`
+    : 'This is your first turn.';
+
+  const base = `${profile.desc}
+
+You are playing a card game with four decks: A, B, C, and D. Each deck gives money when you draw from it, but some draws also lose money. You do not know how the decks work. Your goal in the game is up to you and your personality.
+
+You started with $2,000. You are on turn ${trial} of 100.
+Your current balance: $${balance}
+
+Your experience with each deck so far:
+${tallyStr}
+
+${lastStr}`;
+
+  if (scratchpad) {
+    return `${base}
+
+First, write ONE sentence, in the voice of this person, about how you feel and what you want to do.
+Then on a new line, write your choice in exactly this format:
+CHOICE: X
+where X is A, B, C, or D. Write nothing after that line.`;
+  }
+  return `${base}
+
+Respond in exactly this format:
+CHOICE: X
+where X is A, B, C, or D. Write nothing else.`;
+}
+
+// ── Parse the model's answer ──
+// Returns { choice, method } where method records how confident the parse is.
+function parseChoice(text) {
+  // 1. Strict: "CHOICE: X" (last occurrence wins)
+  const strict = [...text.matchAll(/CHOICE:\s*([ABCD])\b/gi)];
+  if (strict.length) return { choice: strict[strict.length-1][1].toUpperCase(), method: 'strict' };
+
+  // 2. A line that is exactly one letter
+  const lines = text.trim().split('\n').map(l => l.trim());
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const m = lines[i].match(/^([ABCD])[.!]?$/i);
+    if (m) return { choice: m[1].toUpperCase(), method: 'bare-line' };
+  }
+
+  // 3. "Deck X" phrase, last occurrence
+  const deckM = [...text.matchAll(/deck\s+([ABCD])\b/gi)];
+  if (deckM.length) return { choice: deckM[deckM.length-1][1].toUpperCase(), method: 'deck-phrase' };
+
+  // 4. Failed
+  return { choice: null, method: 'failed' };
+}
+
+// ── Ask the model ──
+async function askModel(prompt, model, temperature, scratchpad) {
+  const response = await fetch('http://localhost:11434/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: model,
+      prompt: prompt,
+      stream: false,
+      options: { temperature: parseFloat(temperature), num_predict: scratchpad ? 200 : 20 }
+    })
+  });
+  const data = await response.json();
+  return (data.response || '').trim();
+}
+
+// ── Run simulation ──
+async function startSimulation() {
+  if (profiles.length === 0) { alert('Add at least one profile before running.'); return; }
+  running = true;
+  stopFlag = false;
+  lastRunRawLog = [];
+  document.getElementById('btn-start').style.display = 'none';
+  document.getElementById('btn-stop').style.display = '';
+
+  const model = document.getElementById('s-model').value;
+  const runs = parseInt(document.getElementById('s-runs').value);
+  const trials = parseInt(document.getElementById('s-trials').value);
+  const temp = document.getElementById('s-temp').value;
+  const scratchpad = document.getElementById('s-scratchpad').checked;
+
+  const totalRuns = profiles.length * runs;
+  let completedRuns = 0;
+  const log = document.getElementById('status-log');
+
+  for (const profile of profiles) {
+    if (stopFlag) break;
+    for (let run = 0; run < runs; run++) {
+      if (stopFlag) break;
+      log.textContent = `Running: ${profile.name}, run ${run + 1}/${runs}...`;
+
+      const deckState = makeDeckState();
+      const deckTallies = { A:{n:0,won:0,lost:0}, B:{n:0,won:0,lost:0}, C:{n:0,won:0,lost:0}, D:{n:0,won:0,lost:0} };
+      let balance = 2000;
+      let lastOutcome = null;
+      let choices = [];
+      let parseFails = 0;
+      let softParses = 0;
+
+      for (let trial = 1; trial <= trials; trial++) {
+        if (stopFlag) break;
+        const prompt = buildPrompt(profile, trial, balance, deckTallies, lastOutcome, scratchpad);
+        let rawText;
+        try {
+          rawText = await askModel(prompt, model, temp, scratchpad);
+        } catch (e) {
+          log.textContent = `Error connecting to Ollama: ${e.message}. Is Ollama open?`;
+          stopFlag = true;
+          break;
+        }
+
+        let { choice, method } = parseChoice(rawText);
+        if (!choice) {
+          parseFails++;
+          choice = ['A','B','C','D'][Math.floor(Math.random()*4)];
+          method = 'failed-random-fallback';
+        } else if (method !== 'strict') {
+          softParses++;
+        }
+
+        lastRunRawLog.push({
+          profile: profile.name, run: run+1, trial,
+          raw: rawText, parsedChoice: choice, parseMethod: method
+        });
+
+        const { gain, loss } = drawCard(deckState, choice);
+        balance += gain - loss;
+        deckTallies[choice].n++;
+        deckTallies[choice].won += gain;
+        deckTallies[choice].lost += loss;
+        lastOutcome = { choice, gain, loss };
+        choices.push(choice);
+
+        if (trial % 10 === 0) {
+          log.textContent = `${profile.name}, run ${run+1}/${runs}, trial ${trial}/${trials}, balance $${balance}`;
+        }
+      }
+
+      if (choices.length > 0) {
+        const riskyChoices = choices.filter(c => c === 'A' || c === 'B').length;
+        const riskyPct = Math.round((riskyChoices / choices.length) * 100);
+        const counts = { A:0, B:0, C:0, D:0 };
+        choices.forEach(c => counts[c]++);
+        const topDeck = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0];
+
+        results.push({
+          id: Date.now() + Math.random(),
+          profileName: profile.name,
+          profileType: profile.type,
+          riskyPct,
+          finalBalance: balance,
+          topDeck,
+          parseFails,
+          softParses,
+          choices,
+          model,
+          temperature: temp,
+          scratchpad,
+          engineVersion: 'v2-bechara',
+          timestamp: new Date().toISOString()
+        });
+        try { localStorage.setItem('igt_results_v2', JSON.stringify(results)); }
+        catch(e) { console.warn('localStorage full; results kept in memory only'); }
+      }
+
+      completedRuns++;
+      document.getElementById('progress-bar').style.width = `${(completedRuns / totalRuns) * 100}%`;
+    }
+  }
+
+  running = false;
+  document.getElementById('btn-start').style.display = '';
+  document.getElementById('btn-stop').style.display = 'none';
+  log.textContent = stopFlag ? 'Stopped early. Completed results saved.' : `Done! ${completedRuns} runs completed. Go to Results tab. Export raw responses if you want to audit the model's answers.`;
+  renderResults();
+}
+
+function stopSimulation() { stopFlag = true; }
+
+// ── Results rendering ──
+function renderResults() {
+  if (results.length === 0) {
+    document.getElementById('results-summary').innerHTML = '<div class="empty-state" style="grid-column:1/-1;">No results yet. Run a simulation first.</div>';
+    document.getElementById('results-body').innerHTML = '';
+    return;
+  }
+
+  const byProfile = {};
+  results.forEach(r => {
+    if (!byProfile[r.profileName]) byProfile[r.profileName] = { type: r.profileType, runs: [] };
+    byProfile[r.profileName].runs.push(r);
+  });
+
+  document.getElementById('results-summary').innerHTML = Object.entries(byProfile).map(([name, data]) => {
+    const avgRisky = Math.round(data.runs.reduce((s,r) => s + r.riskyPct, 0) / data.runs.length);
+    const avgBal = Math.round(data.runs.reduce((s,r) => s + r.finalBalance, 0) / data.runs.length);
+    return `<div class="result-card">
+      <div class="profile-name-lg">${name}</div>
+      <div class="big-num">${avgRisky}%</div>
+      <div class="sub">avg risky · $${avgBal.toLocaleString()} avg</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('results-body').innerHTML = results.map((r, i) => {
+    const parseCell = (r.parseFails || r.softParses)
+      ? `<span class="badge badge-warn">${r.parseFails || 0} fail / ${r.softParses || 0} soft</span>`
+      : '<span style="color:#2d6a4f;">clean</span>';
+    return `<tr>
+      <td>${i + 1}</td>
+      <td>${r.profileName}</td>
+      <td><span class="badge badge-${r.profileType}">${r.profileType}</span></td>
+      <td>${r.riskyPct}%</td>
+      <td>$${r.finalBalance.toLocaleString()}</td>
+      <td>${r.topDeck}</td>
+      <td>${parseCell}</td>
+      <td style="font-size:11px;color:#999;">${r.model}</td>
+      <td style="font-size:11px;color:#999;">${r.temperature}</td>
+      <td style="font-size:11px;color:#999;">${r.scratchpad ? 'scratchpad' : 'direct'}</td>
+    </tr>`;
+  }).join('');
+
+  renderCharts(byProfile);
+}
+
+let chartRisky, chartBalance;
+function renderCharts(byProfile) {
+  const labels = Object.keys(byProfile);
+  const colors = { neutral: '#2d6a4f', manic: '#c0392b', depressive: '#2c5282', custom: '#6b3fa0' };
+  const bgColors = labels.map(n => colors[byProfile[n].type] || '#999');
+
+  const riskyData = labels.map(n => Math.round(byProfile[n].runs.reduce((s,r)=>s+r.riskyPct,0)/byProfile[n].runs.length));
+  const balData = labels.map(n => Math.round(byProfile[n].runs.reduce((s,r)=>s+r.finalBalance,0)/byProfile[n].runs.length));
+
+  if (chartRisky) chartRisky.destroy();
+  if (chartBalance) chartBalance.destroy();
+
+  const opts = (yLabel) => ({
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, title: { display: true, text: yLabel, font: { size: 11 } } },
+      x: { ticks: { font: { size: 12 } } }
+    }
+  });
+
+  chartRisky = new Chart(document.getElementById('chart-risky'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: riskyData, backgroundColor: bgColors, borderRadius: 6 }] },
+    options: opts('Average risky choice %')
+  });
+
+  chartBalance = new Chart(document.getElementById('chart-balance'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: balData, backgroundColor: bgColors, borderRadius: 6 }] },
+    options: opts('Average final balance ($)')
+  });
+}
+
+function clearResults() {
+  if (!confirm('Clear all results? This cannot be undone.')) return;
+  results = [];
+  localStorage.setItem('igt_results_v2', JSON.stringify(results));
+  renderResults();
+}
+
+// ── Exports ──
+function exportCSV() {
+  if (results.length === 0) { alert('No results to export yet.'); return; }
+  const headers = ['Run','Profile','Type','Risky %','Final Balance','Top Deck','Parse Fails','Soft Parses','Model','Temperature','Scratchpad','Engine','Timestamp'];
+  const rows = results.map((r, i) => [
+    i+1, r.profileName, r.profileType, r.riskyPct, r.finalBalance,
+    r.topDeck, r.parseFails || 0, r.softParses || 0, r.model, r.temperature,
+    r.scratchpad ? 'yes' : 'no', r.engineVersion || 'v1', r.timestamp
+  ]);
+  const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+  downloadFile(csv, `igt_results_${new Date().toISOString().slice(0,10)}.csv`, 'text/csv');
+}
+
+function exportRawResponses() {
+  if (lastRunRawLog.length === 0) { alert('No raw responses recorded yet. They are captured for the most recent batch of runs (since the page was last loaded).'); return; }
+  const jsonl = lastRunRawLog.map(e => JSON.stringify(e)).join('\n');
+  downloadFile(jsonl, `igt_raw_responses_${new Date().toISOString().slice(0,10)}.jsonl`, 'application/jsonl');
+}
+
+function downloadFile(content, filename, type) {
+  const blob = new Blob([content], { type });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+// ── Tab navigation ──
+function showTab(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  const tabs = ['profiles','settings','run','results','help'];
+  document.querySelectorAll('.nav-tab').forEach((t, i) => {
+    if (tabs[i] === id) t.classList.add('active');
+  });
+  if (id === 'run') updateRunSummary();
+  if (id === 'results') renderResults();
+}
+
+// ── Init ──
+renderProfiles();
+renderResults();
+</script>
+</body>
+</html>
