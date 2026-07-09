@@ -1,0 +1,36 @@
+HI CEREN,
+
+I'm giving you everything you need to run this project yourself now. You're ready for this.
+
+You've learned how the simulation works. You know why the profiles matter, what the payoffs are, what parse failures mean. You understand the whole system. That's enough.
+
+Here's what I'm handing you:
+
+- The simulation tool (it works, it's been tested)
+- Your six profiles (already written, clinically grounded)
+- A guide that walks you through running sims and troubleshooting when things don't work the way you expect
+- A Word doc with template language for your methods section so you're not starting from scratch
+
+Here's what I want you to do:
+
+Run a quick test first: 3 profiles, 3 runs each, 50 trials per run. This takes about 15 minutes. Look at the results. Do they make sense? Can you read them? Then you decide whether to scale to full data or try tweaking something.
+
+If you do full data, it'll take a couple hours on your Mac. While it's running, read the methods guide. By the time the simulation finishes, you'll know exactly what to write.
+
+Then export your results, look at them, and write up what you found.
+
+A few things that matter:
+
+Always run the sanity check before you trust any results. It takes 30 seconds and it's the difference between data you can believe in and data you can't.
+
+Unexpected results aren't failures. If your profiles don't differentiate the way you expected, that's a finding worth explaining. Some of the best papers come from surprising results.
+
+Write what actually happened, not what you thought would happen. That's it.
+
+You can iterate. If results look weird, try different settings. Try a different model. That's totally normal research work.
+
+I'm here if something actually breaks or if you want to talk through what your results mean. But I don't think you'll need much. You've got this.
+
+Let me know when you're ready to start.
+
+—Claire

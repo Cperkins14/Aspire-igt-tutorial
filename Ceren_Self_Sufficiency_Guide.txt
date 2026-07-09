@@ -1,0 +1,158 @@
+YOUR SIMULATION GUIDE
+
+This is here so you can troubleshoot, figure things out, and make decisions without having to wait for me to respond. It covers how to run the simulation, what to do when something doesn't work the way you expect, and how to think through whether to keep going or try something different.
+
+THE BASIC FLOW
+
+1. Load your profiles (I've already written them)
+2. Run the sanity check (always do this first)
+3. Configure your settings (decide how many profiles, how many trials, what model)
+4. Hit start and let it run
+5. Look at your results
+6. Decide: does this make sense, or do I want to tweak something and try again?
+7. Write it up
+
+The golden rule: Always sanity-check before trusting anything. It takes 30 seconds and it's the difference between data you believe and data that's suspect.
+
+BEFORE YOU RUN ANYTHING
+
+Quick checklist:
+- Ollama is open and running
+- You ran the sanity check and it passed (always-A player shows around minus $500, always-C shows around $4,500)
+- Your profiles are loaded with the behavioral translation sentences at the end
+- You know what settings you're using and why
+
+If the sanity check fails: Stop. Something's wrong with how the task is set up. Restart Ollama and try again. Don't proceed until the sanity check passes. This is the part that matters.
+
+WHAT THE SETTINGS MEAN (AND WHEN TO CHANGE THEM)
+
+Model: I set it to Mistral. That's the AI doing the task. If you want to test how a different model behaves, you can swap to llama3 or mixtral. To add a new model, open Terminal and type: ollama pull mistral (swap the name). Change it if you get tons of parse failures or all your results look identical.
+
+Temperature: This controls how random the model is. 0.7 is the sweet spot—consistent enough to see the persona, varied enough to be realistic. If all profiles are acting the same, try 0.9 (more random). If results are all over the place, lower it to 0.5 (more predictable).
+
+History mode: How much the model remembers. "Recent" means it sees the last 5 trials as sentences. That's what you want—it's learnable but not transparent. "Minimal" is just the last outcome (more uncertainty). "Summary" gives it a table of all deck totals, which makes it solvable by math and profiles disappear. Don't use summary for testing personas.
+
+Trials: 50 for a quick test, 100 for real data. Standard IGT is 100.
+
+Runs per profile: How many times you run each one. 5 is fast, 10 is balanced, 50 is very solid but takes hours. Start with 5 to test, scale up if it looks good.
+
+Scratchpad: On means the model writes one sentence before choosing. Keeps it in character. Off is just a letter. Keep it on unless parse failures get really bad.
+
+RUNNING A SIMULATION
+
+Go to Settings and run the sanity check first. Make sure it passes. Then go to the Run tab. You'll see what you've set up summarized at the top. Hit start.
+
+The progress bar will move. The status updates you on what's running. Just let it go. If you set 50 trials it's fast. If you set 100 trials it takes longer. That's normal.
+
+If the progress bar gets stuck for more than 5 minutes, something froze. Hit Stop, restart Ollama, and try again.
+
+If one profile crashes but the others keep going, that's fine. It happens sometimes. Just note which profile and move on.
+
+When it's done, go to Results tab.
+
+READING YOUR RESULTS
+
+Look at the summary cards first. These show the average for each profile. If manic profiles are at 60% risky and depressive are at 30%, that's differentiation and it's working. If they're all 50%, the model isn't responding to the profiles.
+
+The chart gives you a visual. Higher bar means riskier choices. If the bars are all roughly the same height, profiles aren't differentiating.
+
+Look at the bottom table too. Each row is one run. Check the "Parse issues" column. If it says "clean," great. If it says "100 fail," that means the model's outputs couldn't be parsed—it wasn't responding in the right format. That's a problem worth fixing.
+
+Final balance tells you if the profile was actually learning the decks or just randomizing. Risky profiles should end around $1,500 (they lose money on risky decks). Safe profiles should end higher.
+
+WHEN THINGS DON'T WORK
+
+Profiles all cluster at 50% risky: The model isn't responding to the personalities. Try bumping temperature to 0.9 to add variation. Or switch the history mode to "Minimal" so there's less information to rely on. Or try a different model. Test this with just 3 profiles and 3 runs so you don't waste hours.
+
+Lots of parse failures: The model isn't responding in the format we expect. Export the raw responses and read what it's actually saying. Maybe it's confused about the format. Try turning scratchpad off. Or try a different model.
+
+Results are all over the place: Temperature might be too high. Lower it to 0.5 and try again. Or your profile descriptions might need more specific detail.
+
+One profile keeps crashing but others work: That profile might be confusing the model. Simplify it. Shorten it. Make the behavioral translation clearer.
+
+Ollama keeps disconnecting: Try restarting Ollama. Sometimes it just needs a fresh start.
+
+Rule of thumb: If something seems off, try one thing, run a quick test (3 profiles, 3 runs, 50 trials), and see if it gets better. Don't spend hours on a setting that isn't working.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+SECTION 7: WHEN TO ITERATE, WHEN TO PUBLISH
+
+Iteration points:
+
+AFTER QUICK TEST (5 profiles × 3 runs × 50 trials, ~15 min):
+- Are parses clean?
+- Do profiles differentiate at all (even if backwards)?
+- Is one model/temperature way better than another?
+→ Decision: If yes to all three, commit to full data run. If no, try different settings.
+
+AFTER FIRST FULL RUN (6 profiles × 10 runs × 100 trials, ~2 hours):
+- Do results look consistent across runs?
+- Is the pattern clear (manic higher, depressive lower, or some other pattern)?
+- Are parse issues <5% per run?
+→ Decision: If yes, you have interpretable data. If no, try 1-2 more iterations with different settings.
+
+AFTER 2-3 FULL RUNS WITH DIFFERENT SETTINGS:
+- Which setting produced the clearest differentiation?
+- Do you have a reproducible pattern?
+→ Decision: Publish with that setting. Document what you tried and why.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+SECTION 8: WHAT YOUR PAPER WILL SAY
+
+Regardless of results:
+
+INTRODUCTION & BACKGROUND
+- Why bipolar disorder affects decision-making (cite research)
+- Why the Iowa Gambling Task is relevant
+- Why simulating this is hard (IRB, ethics, recruiting)
+- Your research question: "Do LLM-simulated psychological personas produce behaviorally differentiated patterns on the IGT?"
+
+METHODS
+- 6 profiles (2 neutral, 2 manic, 2 depressive), each grounded in DSM-5 criteria and clinical literature
+- Iowa Gambling Task (100 trials, 4 decks, canonical payoffs from Bechara et al., 1994)
+- Local LLM (Mistral via Ollama)
+- Settings: [whatever you end up using]
+- X profiles × Y runs × 100 trials = Z total simulations
+
+RESULTS
+- Summary table: Risky %, final balance, top deck for each profile
+- Charts: risky % and final balance by profile type
+- What you found: [clear pattern, flat results, backwards pattern, etc.]
+
+DISCUSSION
+- What this tells us about LLM simulation
+- How it compares to clinical expectations
+- Limitations (using AI instead of people, model-specific biases, etc.)
+- Future work (different models, different personas, different tasks)
+
+MAKING DECISIONS
+
+You own this. Here's how to think:
+
+Parse failures are a problem. Flat results might not be. Clean parses with all profiles at 50% risky is actually a finding—it tells you something about how the model works. Document it and write about it. That's your paper.
+
+Don't change profiles if the parses are working fine. Flat results don't mean your profiles are bad; they mean the model isn't differentiating. That's interpretable.
+
+Start with 5 or 10 runs. If the averages look stable and clear, you're done. If they're all over the place, run more.
+
+Try one setting change at a time. Don't change temperature and model and history mode all at once. Change one thing, run 3 profiles × 3 runs to see if it helps, then decide what to do next.
+
+If something seems off, actually look at the raw data. Don't just stare at the summary numbers. Export raw responses. See what the model is actually outputting.
+
+HOW TO GET HELP
+
+Before you reach out: Did you run the sanity check and did it pass? Did you try changing one setting? Did you look at the raw data yourself? Can you explain the problem in 2-3 sentences?
+
+If all those are yes, then reach out. Tell me what you were trying, what you expected, what actually happened, and what you already tried. Include a screenshot if it helps.
+
+I'm here if something actually breaks or if you want to talk through what the data means. But I don't think you'll need much.
+
+---
+
+You've got this. Run it. Look at the results. Write what you found. The system works.
+
+Simulator: https://cperkins14.github.io/Aspire-igt-tutorial/simulation-runner.html
+Github: github.com/Cperkins14/Aspire-igt-tutorial
+Reference: Bechara et al. (1994)
