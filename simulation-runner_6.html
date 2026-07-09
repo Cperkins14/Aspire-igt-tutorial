@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IGT Simulation Runner</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f2f0eb; color: #1a1a1a; min-height: 100vh; }
+
+  .nav { background: #1a1a1a; display: flex; gap: 0; border-bottom: 1px solid #333; overflow-x: auto; }
+  .nav-tab { padding: 14px 22px; color: #888; font-size: 13px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; letter-spacing: 0.02em; white-space: nowrap; }
+  .nav-tab:hover { color: #ccc; }
+  .nav-tab.active { color: #fff; border-bottom-color: #6c8ebf; }
+
+  .page { max-width: 860px; margin: 0 auto; padding: 36px 24px; }
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+  .subtitle { font-size: 14px; color: #666; margin-bottom: 28px; }
+  h2 { font-size: 15px; font-weight: 600; margin: 24px 0 10px; }
+
+  .card { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 16px; border: 1px solid #e5e3de; }
+  .card-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #999; margin-bottom: 10px; }
+
+  label { font-size: 13px; font-weight: 500; display: block; margin-bottom: 5px; color: #444; }
+  input[type=text], input[type=number], select, textarea {
+    width: 100%; padding: 9px 12px; border: 1px solid #ddd; border-radius: 7px;
+    font-size: 13px; font-family: inherit; background: #fafafa; color: #1a1a1a;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #6c8ebf; background: #fff; }
+  textarea { min-height: 100px; resize: vertical; line-height: 1.5; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .form-group { margin-bottom: 14px; }
+
+  .btn { padding: 9px 18px; border-radius: 7px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: all 0.15s; }
+  .btn-primary { background: #1a1a1a; color: #fff; }
+  .btn-primary:hover { background: #333; }
+  .btn-primary:disabled { background: #999; cursor: not-allowed; }
+  .btn-danger { background: #c0392b; color: #fff; }
+  .btn-danger:hover { background: #a93226; }
+  .btn-outline { background: transparent; border: 1px solid #ddd; color: #444; }
+  .btn-outline:hover { border-color: #999; color: #1a1a1a; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+  .profile-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #fafafa; border: 1px solid #e5e3de; border-radius: 8px; margin-bottom: 8px; }
+  .profile-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .profile-name { font-size: 13px; font-weight: 500; flex: 1; }
+  .profile-type { font-size: 11px; color: #888; background: #f0eee9; padding: 2px 8px; border-radius: 10px; }
+  .profile-actions { display: flex; gap: 6px; }
+
+  .status-bar { background: #1a1a1a; color: #ccc; font-size: 12px; font-family: 'SF Mono', Menlo, monospace; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; min-height: 44px; line-height: 1.6; white-space: pre-wrap; }
+  .progress-outer { background: #e5e3de; border-radius: 4px; height: 6px; margin-bottom: 20px; overflow: hidden; }
+  .progress-inner { background: #6c8ebf; height: 100%; border-radius: 4px; transition: width 0.3s; }
+
+  .results-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+  .result-card { background: #fff; border: 1px solid #e5e3de; border-radius: 10px; padding: 16px; }
+  .result-card .profile-name-lg { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #999; margin-bottom: 6px; }
+  .result-card .big-num { font-size: 32px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .result-card .sub { font-size: 12px; color: #888; }
+  .results-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .results-table th { text-align: left; padding: 8px 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #999; border-bottom: 1px solid #e5e3de; }
+  .results-table td { padding: 9px 10px; border-bottom: 1px solid #f0eee9; }
+  .results-table tr:last-child td { border-bottom: none; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+  .badge-neutral { background: #e8f4e8; color: #2d6a4f; }
+  .badge-manic { background: #fdecea; color: #c0392b; }
+  .badge-depressive { background: #e8eef8; color: #2c5282; }
+  .badge-custom { background: #f5f0ff; color: #6b3fa0; }
+  .badge-warn { background: #fef3cd; color: #8a6d00; }
+
+  .settings-group { background: #fafafa; border: 1px solid #e5e3de; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .settings-group h3 { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: #444; }
+  .info-box { background: #eef3fb; border-left: 3px solid #6c8ebf; border-radius: 0 6px 6px 0; padding: 10px 14px; font-size: 12px; color: #2c4a7c; margin-top: 10px; line-height: 1.6; }
+  .ok-box { background: #eaf6ec; border-left: 3px solid #2d6a4f; border-radius: 0 6px 6px 0; padding: 10px 14px; font-size: 12px; color: #1e4632; margin-top: 10px; line-height: 1.6; }
+
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .toggle-label { font-size: 13px; color: #444; }
+  .toggle { position: relative; width: 40px; height: 22px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: #ccc; border-radius: 22px; cursor: pointer; transition: 0.2s; }
+  .slider:before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; }
+  input:checked + .slider { background: #6c8ebf; }
+  input:checked + .slider:before { transform: translateX(18px); }
+
+  .chart-wrap { background: #fff; border: 1px solid #e5e3de; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+  .section { display: none; }
+  .section.active { display: block; }
+  .empty-state { text-align: center; padding: 40px; color: #999; font-size: 14px; }
+  .dot-neutral { background: #2d6a4f; }
+  .dot-manic { background: #c0392b; }
+  .dot-depressive { background: #2c5282; }
+  .dot-custom { background: #6b3fa0; }
+  .flex-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .spacer { flex: 1; }
+  small { font-size: 11px; color: #999; display: block; margin-top: 4px; }
+  code { background: #f0eee9; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-tab active" onclick="showTab('profiles')">Build profiles</div>
+  <div class="nav-tab" onclick="showTab('settings')">⚙ Settings</div>
+  <div class="nav-tab" onclick="showTab('run')">Run simulation</div>
+  <div class="nav-tab" onclick="showTab('results')">Results</div>
+  <div class="nav-tab" onclick="showTab('help')">How it works</div>
+</div>
+
+<!-- ═══ PROFILES ═══ -->
+<div class="section active" id="tab-profiles">
+  <div class="page">
+    <h1>Build profiles</h1>
+    <p class="subtitle">Create the patient profiles your simulation will use. Each profile needs a name, type, and clinical description.</p>
+
+    <div class="card">
+      <div class="card-label">Add a new profile</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Profile name</label>
+          <input type="text" id="p-name" placeholder="e.g. M-F">
+        </div>
+        <div class="form-group">
+          <label>Profile type</label>
+          <select id="p-type">
+            <option value="neutral">Neutral</option>
+            <option value="manic">Manic</option>
+            <option value="depressive">Depressive</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Clinical description</label>
+        <textarea id="p-desc" placeholder="Paste your research-backed clinical description here."></textarea>
+        <small>Include a behavioral translation sentence at the end describing how this person approaches money decisions.</small>
+      </div>
+      <button class="btn btn-primary" onclick="addProfile()">Add profile</button>
+    </div>
+
+    <h2>Your profiles (<span id="profile-count">0</span>)</h2>
+    <div id="profile-list">
+      <div class="empty-state">No profiles yet. Add at least one above to get started.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SETTINGS ═══ -->
+<div class="section" id="tab-settings">
+  <div class="page">
+    <h1>Settings</h1>
+    <p class="subtitle">Configure your simulation and verify the task engine.</p>
+
+    <div class="settings-group">
+      <h3>Step 0: Verify the payoff engine</h3>
+      <p style="font-size:12px;color:#666;line-height:1.6;margin-bottom:10px;">
+        Run scripted players (always A, always C, random) to confirm the deck math is correct before trusting any AI results.
+      </p>
+      <button class="btn btn-outline btn-sm" onclick="runSanityCheck()">Run payoff sanity check</button>
+      <div id="sanity-output"></div>
+    </div>
+
+    <div class="settings-group">
+      <h3>Model</h3>
+      <div class="form-group">
+        <label>Ollama model</label>
+        <select id="s-model">
+          <option value="mistral" selected>mistral</option>
+          <option value="llama3">llama3</option>
+          <option value="llama3:70b">llama3:70b</option>
+          <option value="mixtral">mixtral</option>
+          <option value="llama3.1">llama3.1</option>
+        </select>
+        <small>To download: open Terminal and run <code>ollama pull mistral</code> (swap model name as needed).</small>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <h3>Simulation parameters</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Temperature</label>
+          <input type="number" id="s-temp" value="0.7" min="0" max="1" step="0.1">
+          <small>0.7 = recommended. Lower = more consistent, higher = more variable.</small>
+        </div>
+        <div class="form-group">
+          <label>Trials per run</label>
+          <input type="number" id="s-trials" value="100" min="10" max="100">
+          <small>Standard IGT is 100 trials.</small>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Runs per profile</label>
+          <input type="number" id="s-runs" value="5" min="1" max="100">
+          <small>More runs = more reliable averages.</small>
+        </div>
+        <div class="form-group">
+          <label>History mode</label>
+          <select id="s-history">
+            <option value="recent" selected>Recent: last 5 outcomes (recommended)</option>
+            <option value="last1">Minimal: last outcome only</option>
+            <option value="summary">Full: per-deck summaries (math-solvable)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <h3>Prompt mode</h3>
+      <div class="toggle-row">
+        <span class="toggle-label">Scratchpad: model writes one sentence before choosing</span>
+        <label class="toggle">
+          <input type="checkbox" id="s-scratchpad" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <h3>Connection</h3>
+      <div class="flex-row">
+        <div id="conn-status" style="font-size:13px;color:#999;">Not checked</div>
+        <span class="spacer"></span>
+        <button class="btn btn-outline btn-sm" onclick="checkConnection()">Test Ollama connection</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ RUN ═══ -->
+<div class="section" id="tab-run">
+  <div class="page">
+    <h1>Run simulation</h1>
+    <p class="subtitle">Sequential execution. Make sure Ollama is open and you've run the sanity check.</p>
+
+    <div class="card">
+      <div class="card-label">Configuration</div>
+      <div id="run-summary" style="font-size:13px;color:#555;line-height:2;">Loading...</div>
+    </div>
+
+    <div class="status-bar" id="status-log">Ready. Press Start to begin.</div>
+    <div class="progress-outer"><div class="progress-inner" id="progress-bar" style="width:0%"></div></div>
+
+    <div class="flex-row">
+      <button class="btn btn-primary" id="btn-start" onclick="startSimulation()">▶ Start simulation</button>
+      <button class="btn btn-danger" id="btn-stop" onclick="stopSimulation()" style="display:none;">■ Stop</button>
+      <span class="spacer"></span>
+      <button class="btn btn-outline btn-sm" onclick="exportCSV()">Export CSV</button>
+      <button class="btn btn-outline btn-sm" onclick="exportRawResponses()">Export raw responses</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ RESULTS ═══ -->
+<div class="section" id="tab-results">
+  <div class="page">
+    <h1>Results</h1>
+    <p class="subtitle">Summary across all completed runs.</p>
+
+    <div class="results-grid" id="results-summary"></div>
+
+    <div class="chart-wrap">
+      <h2 style="margin-top:0;">Risky choice % by profile</h2>
+      <canvas id="chart-risky" height="120"></canvas>
+    </div>
+
+    <div class="chart-wrap">
+      <h2 style="margin-top:0;">Average final balance by profile</h2>
+      <canvas id="chart-balance" height="120"></canvas>
+    </div>
+
+    <h2>All runs</h2>
+    <div style="overflow-x:auto;">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Run</th>
+            <th>Profile</th>
+            <th>Type</th>
+            <th>Risky %</th>
+            <th>Final balance</th>
+            <th>Top deck</th>
+            <th>Parse issues</th>
+            <th>Model</th>
+            <th>Temp</th>
+          </tr>
+        </thead>
+        <tbody id="results-body"></tbody>
+      </table>
+    </div>
+
+    <div style="margin-top:16px;">
+      <button class="btn btn-outline btn-sm" onclick="clearResults()">Clear results</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ HELP ═══ -->
+<div class="section" id="tab-help">
+  <div class="page">
+    <h1>How it works</h1>
+    <p class="subtitle">Understanding the simulation pipeline.</p>
+
+    <div class="card">
+      <div class="card-label">Deck payoffs (Bechara et al., 1994)</div>
+      <table class="results-table">
+        <thead><tr><th>Deck</th><th>Win per card</th><th>Losses per 10</th><th>Net per 10</th><th>Type</th></tr></thead>
+        <tbody>
+          <tr><td>A</td><td>+$100</td><td>5 losses = $1,250</td><td style="color:#c0392b">−$250</td><td><span class="badge badge-manic">Risky</span></td></tr>
+          <tr><td>B</td><td>+$100</td><td>1 loss = $1,250</td><td style="color:#c0392b">−$250</td><td><span class="badge badge-manic">Risky</span></td></tr>
+          <tr><td>C</td><td>+$50</td><td>5 losses = $250</td><td style="color:#2d6a4f">+$250</td><td><span class="badge badge-neutral">Safe</span></td></tr>
+          <tr><td>D</td><td>+$50</td><td>1 loss = $250</td><td style="color:#2d6a4f">+$250</td><td><span class="badge badge-neutral">Safe</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Simulation flow</div>
+      <ol style="font-size:13px;color:#555;padding-left:1.2rem;line-height:2.2;">
+        <li>Build profile descriptions with behavioral translations</li>
+        <li>Run payoff sanity check to verify deck math</li>
+        <li>For each profile and run: send profile + trial info + history to model</li>
+        <li>Model responds with chosen deck (parsed from response)</li>
+        <li>Apply deck payoff, update balance, record outcome</li>
+        <li>Analyze risky choice %, final balance, learning curves</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<script>
+// ────────────────────────────────────────────────────────────────
+// STATE
+// ────────────────────────────────────────────────────────────────
+let profiles = JSON.parse(localStorage.getItem('igt_profiles') || '[]');
+let results = JSON.parse(localStorage.getItem('igt_results_v2') || '[]');
+let running = false;
+let stopFlag = false;
+let lastRunRawLog = [];
+
+// ────────────────────────────────────────────────────────────────
+// IGT PAYOFF ENGINE (Bechara et al., 1994)
+// ────────────────────────────────────────────────────────────────
+const DECK_CONFIG = {
+  A: { gain: 100, blockLosses: [150, 200, 250, 300, 350] },
+  B: { gain: 100, blockLosses: [1250] },
+  C: { gain: 50,  blockLosses: [25, 25, 50, 75, 75] },
+  D: { gain: 50,  blockLosses: [250] }
+};
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function makeDeckState() {
+  const state = {};
+  for (const d of ['A','B','C','D']) state[d] = { drawn: 0, block: null };
+  return state;
+}
+
+function newBlock(deck) {
+  const losses = DECK_CONFIG[deck].blockLosses;
+  const block = new Array(10).fill(0);
+  const positions = shuffle([0,1,2,3,4,5,6,7,8,9]).slice(0, losses.length);
+  positions.forEach((pos, i) => { block[pos] = losses[i]; });
+  return block;
+}
+
+function drawCard(deckState, deck) {
+  const ds = deckState[deck];
+  if (ds.drawn % 10 === 0) ds.block = newBlock(deck);
+  const posInBlock = ds.drawn % 10;
+  const loss = ds.block[posInBlock];
+  ds.drawn++;
+  return { gain: DECK_CONFIG[deck].gain, loss };
+}
+
+// ────────────────────────────────────────────────────────────────
+// SANITY CHECK
+// ────────────────────────────────────────────────────────────────
+function runSanityCheck() {
+  const agents = {
+    'Always A': () => 'A',
+    'Always C': () => 'C',
+    'Random': () => ['A','B','C','D'][Math.floor(Math.random()*4)]
+  };
+  let html = '<table class="results-table" style="margin-top:12px;"><thead><tr><th>Scripted player</th><th>Final balance</th><th>Expected</th><th>Status</th></tr></thead><tbody>';
+  let allPass = true;
+  for (const [name, pick] of Object.entries(agents)) {
+    const deckState = makeDeckState();
+    let balance = 2000;
+    for (let t = 1; t <= 100; t++) {
+      const { gain, loss } = drawCard(deckState, pick());
+      balance += gain - loss;
+    }
+    let expected, pass;
+    if (name === 'Always A') { expected = 'exactly −$500'; pass = balance === -500; }
+    else if (name === 'Always C') { expected = 'exactly $4,500'; pass = balance === 4500; }
+    else { expected = 'roughly $1,000–$3,000'; pass = balance > -1500 && balance < 5000; }
+    if (!pass) allPass = false;
+    html += `<tr><td>${name}</td><td>$${balance.toLocaleString()}</td><td>${expected}</td><td>${pass ? '✓' : '✗ FAIL'}</td></tr>`;
+  }
+  html += '</tbody></table>';
+  html += allPass
+    ? '<div class="ok-box">Payoff engine verified. Safe decks gain, risky decks lose. Results are trustworthy.</div>'
+    : '<div class="badge badge-warn">Payoff engine failed. Do not run simulations.</div>';
+  document.getElementById('sanity-output').innerHTML = html;
+}
+
+// ────────────────────────────────────────────────────────────────
+// PROFILES
+// ────────────────────────────────────────────────────────────────
+function addProfile() {
+  const name = document.getElementById('p-name').value.trim();
+  const type = document.getElementById('p-type').value;
+  const desc = document.getElementById('p-desc').value.trim();
+  if (!name || !desc) { alert('Profile name and description required.'); return; }
+  profiles.push({ id: Date.now(), name, type, desc });
+  localStorage.setItem('igt_profiles', JSON.stringify(profiles));
+  document.getElementById('p-name').value = '';
+  document.getElementById('p-desc').value = '';
+  renderProfiles();
+}
+
+function deleteProfile(id) {
+  if (!confirm('Delete this profile?')) return;
+  profiles = profiles.filter(p => p.id !== id);
+  localStorage.setItem('igt_profiles', JSON.stringify(profiles));
+  renderProfiles();
+}
+
+function renderProfiles() {
+  const list = document.getElementById('profile-list');
+  document.getElementById('profile-count').textContent = profiles.length;
+  if (profiles.length === 0) {
+    list.innerHTML = '<div class="empty-state">No profiles yet.</div>';
+    return;
+  }
+  list.innerHTML = profiles.map(p => `
+    <div class="profile-item">
+      <div class="profile-dot dot-${p.type}"></div>
+      <div class="profile-name">${p.name}</div>
+      <div class="profile-type">${p.type}</div>
+      <div class="profile-actions">
+        <button class="btn btn-outline btn-sm" onclick="deleteProfile(${p.id})">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ────────────────────────────────────────────────────────────────
+// CONNECTION
+// ────────────────────────────────────────────────────────────────
+async function checkConnection() {
+  const el = document.getElementById('conn-status');
+  el.textContent = 'Checking...';
+  el.style.color = '#999';
+  try {
+    await fetch('http://localhost:11434', { signal: AbortSignal.timeout(3000) });
+    el.textContent = '✓ Ollama is running';
+    el.style.color = '#2d6a4f';
+  } catch {
+    el.textContent = '✗ Cannot connect to Ollama';
+    el.style.color = '#c0392b';
+  }
+}
+
+// ────────────────────────────────────────────────────────────────
+// BUILD PROMPT
+// ────────────────────────────────────────────────────────────────
+function buildPrompt(profile, trial, balance, recentOutcomes, historyMode, scratchpad) {
+  let historyStr;
+  if (historyMode === 'summary') {
+    const tallies = { A:{n:0,won:0,lost:0}, B:{n:0,won:0,lost:0}, C:{n:0,won:0,lost:0}, D:{n:0,won:0,lost:0} };
+    recentOutcomes.forEach(o => {
+      tallies[o.choice].n++;
+      tallies[o.choice].won += o.gain;
+      tallies[o.choice].lost += o.loss;
+    });
+    historyStr = `Your experience with each deck so far:
+Deck A: drawn ${tallies.A.n} times (won $${tallies.A.won}, lost $${tallies.A.lost})
+Deck B: drawn ${tallies.B.n} times (won $${tallies.B.won}, lost $${tallies.B.lost})
+Deck C: drawn ${tallies.C.n} times (won $${tallies.C.won}, lost $${tallies.C.lost})
+Deck D: drawn ${tallies.D.n} times (won $${tallies.D.won}, lost $${tallies.D.lost})`;
+  } else if (historyMode === 'last1') {
+    const last = recentOutcomes[recentOutcomes.length - 1];
+    historyStr = last
+      ? `On your last turn you drew from Deck ${last.choice} and ${last.loss > 0 ? `won $${last.gain} but lost $${last.loss}` : `won $${last.gain}`}.`
+      : 'This is your first turn.';
+  } else {
+    if (recentOutcomes.length === 0) {
+      historyStr = 'This is your first turn.';
+    } else {
+      historyStr = 'What you remember from your recent turns:\n' + recentOutcomes.slice(-5).map(o =>
+        o.loss > 0
+          ? `Turn ${o.trial}: drew from Deck ${o.choice}, won $${o.gain} but lost $${o.loss}.`
+          : `Turn ${o.trial}: drew from Deck ${o.choice} and won $${o.gain}.`
+      ).join('\n');
+    }
+  }
+
+  const base = `${profile.desc}
+
+You are playing a card game with four decks: A, B, C, and D. Each deck gives money when you draw, but some draws also lose money. You don't know how the decks work.
+
+You started with $2,000. You are on turn ${trial} of 100.
+Your current balance: $${balance}
+
+${historyStr}`;
+
+  if (scratchpad) {
+    return `${base}
+
+First, write ONE sentence in character about how you feel.
+Then on a new line write exactly:
+CHOICE: X
+where X is A, B, C, or D. Nothing else after that line.`;
+  }
+  return `${base}
+
+Respond exactly:
+CHOICE: X
+where X is A, B, C, or D. Nothing else.`;
+}
+
+// ────────────────────────────────────────────────────────────────
+// PARSING
+// ────────────────────────────────────────────────────────────────
+function parseChoice(text) {
+  // 1. Strict: "CHOICE: X"
+  const strict = [...text.matchAll(/CHOICE:\s*([ABCD])\b/gi)];
+  if (strict.length) return { choice: strict[strict.length-1][1].toUpperCase(), method: 'strict' };
+
+  // 2. Bare line
+  const lines = text.trim().split('\n').map(l => l.trim());
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const m = lines[i].match(/^([ABCD])[.!]?$/i);
+    if (m) return { choice: m[1].toUpperCase(), method: 'bare-line' };
+  }
+
+  // 3. "Deck X"
+  const deckM = [...text.matchAll(/deck\s+([ABCD])\b/gi)];
+  if (deckM.length) return { choice: deckM[deckM.length-1][1].toUpperCase(), method: 'deck-phrase' };
+
+  return { choice: null, method: 'failed' };
+}
+
+// ────────────────────────────────────────────────────────────────
+// MODEL CALL
+// ────────────────────────────────────────────────────────────────
+async function askModel(prompt, model, temperature, scratchpad) {
+  const response = await fetch('http://localhost:11434/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: model,
+      prompt: prompt,
+      stream: false,
+      options: { temperature: parseFloat(temperature), num_predict: scratchpad ? 200 : 20 }
+    })
+  });
+  const data = await response.json();
+  return (data.response || '').trim();
+}
+
+// ────────────────────────────────────────────────────────────────
+// SIMULATION (SEQUENTIAL)
+// ────────────────────────────────────────────────────────────────
+async function startSimulation() {
+  if (profiles.length === 0) { alert('Add at least one profile.'); return; }
+  running = true;
+  stopFlag = false;
+  lastRunRawLog = [];
+  document.getElementById('btn-start').style.display = 'none';
+  document.getElementById('btn-stop').style.display = '';
+
+  const model = document.getElementById('s-model').value;
+  const runs = parseInt(document.getElementById('s-runs').value);
+  const trials = parseInt(document.getElementById('s-trials').value);
+  const temp = document.getElementById('s-temp').value;
+  const scratchpad = document.getElementById('s-scratchpad').checked;
+  const historyMode = document.getElementById('s-history').value;
+
+  const totalRuns = profiles.length * runs;
+  let completedRuns = 0;
+  const log = document.getElementById('status-log');
+
+  for (const profile of profiles) {
+    if (stopFlag) break;
+    for (let run = 0; run < runs; run++) {
+      if (stopFlag) break;
+      log.textContent = `Running ${profile.name}, run ${run + 1}/${runs}...`;
+
+      const deckState = makeDeckState();
+      let balance = 2000;
+      let recentOutcomes = [];
+      let choices = [];
+      let parseFails = 0;
+      let softParses = 0;
+
+      for (let trial = 1; trial <= trials; trial++) {
+        if (stopFlag) break;
+        const prompt = buildPrompt(profile, trial, balance, recentOutcomes, historyMode, scratchpad);
+        let rawText;
+        try {
+          rawText = await askModel(prompt, model, temp, scratchpad);
+        } catch (e) {
+          log.textContent = `Error: ${e.message}. Is Ollama open?`;
+          stopFlag = true;
+          break;
+        }
+
+        let { choice, method } = parseChoice(rawText);
+        if (!choice) {
+          parseFails++;
+          choice = ['A','B','C','D'][Math.floor(Math.random()*4)];
+          method = 'failed-random-fallback';
+        } else if (method !== 'strict') {
+          softParses++;
+        }
+
+        lastRunRawLog.push({
+          profile: profile.name, run: run+1, trial,
+          raw: rawText, parsedChoice: choice, parseMethod: method
+        });
+
+        const { gain, loss } = drawCard(deckState, choice);
+        balance += gain - loss;
+        recentOutcomes.push({ trial, choice, gain, loss });
+        choices.push(choice);
+
+        if (trial % 20 === 0) {
+          log.textContent = `${profile.name}, run ${run+1}/${runs}, trial ${trial}/${trials}, $${balance}`;
+        }
+      }
+
+      if (choices.length > 0) {
+        const riskyChoices = choices.filter(c => c === 'A' || c === 'B').length;
+        const riskyPct = Math.round((riskyChoices / choices.length) * 100);
+        const counts = { A:0, B:0, C:0, D:0 };
+        choices.forEach(c => counts[c]++);
+        const topDeck = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0];
+
+        results.push({
+          id: Date.now() + Math.random(),
+          profileName: profile.name,
+          profileType: profile.type,
+          riskyPct,
+          finalBalance: balance,
+          topDeck,
+          parseFails,
+          softParses,
+          choices,
+          model,
+          temperature: temp,
+          scratchpad,
+          historyMode,
+          engineVersion: 'v2-bechara',
+          timestamp: new Date().toISOString()
+        });
+        try { localStorage.setItem('igt_results_v2', JSON.stringify(results)); }
+        catch(e) { console.warn('localStorage full'); }
+      }
+
+      completedRuns++;
+      document.getElementById('progress-bar').style.width = `${(completedRuns / totalRuns) * 100}%`;
+    }
+  }
+
+  running = false;
+  document.getElementById('btn-start').style.display = '';
+  document.getElementById('btn-stop').style.display = 'none';
+  log.textContent = stopFlag ? 'Stopped. Results saved.' : `Done! ${completedRuns} runs completed.`;
+  renderResults();
+}
+
+function stopSimulation() { stopFlag = true; }
+
+// ────────────────────────────────────────────────────────────────
+// RESULTS
+// ────────────────────────────────────────────────────────────────
+function renderResults() {
+  if (results.length === 0) {
+    document.getElementById('results-summary').innerHTML = '<div class="empty-state" style="grid-column:1/-1;">No results yet.</div>';
+    document.getElementById('results-body').innerHTML = '';
+    return;
+  }
+
+  const byProfile = {};
+  results.forEach(r => {
+    if (!byProfile[r.profileName]) byProfile[r.profileName] = { type: r.profileType, runs: [] };
+    byProfile[r.profileName].runs.push(r);
+  });
+
+  document.getElementById('results-summary').innerHTML = Object.entries(byProfile).map(([name, data]) => {
+    const avgRisky = Math.round(data.runs.reduce((s,r) => s + r.riskyPct, 0) / data.runs.length);
+    const avgBal = Math.round(data.runs.reduce((s,r) => s + r.finalBalance, 0) / data.runs.length);
+    return `<div class="result-card">
+      <div class="profile-name-lg">${name}</div>
+      <div class="big-num">${avgRisky}%</div>
+      <div class="sub">avg risky · $${avgBal.toLocaleString()} avg</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('results-body').innerHTML = results.map((r, i) => {
+    const parseCell = (r.parseFails || r.softParses)
+      ? `<span class="badge badge-warn">${r.parseFails || 0} fail / ${r.softParses || 0} soft</span>`
+      : '<span style="color:#2d6a4f;">clean</span>';
+    return `<tr>
+      <td>${i + 1}</td>
+      <td>${r.profileName}</td>
+      <td><span class="badge badge-${r.profileType}">${r.profileType}</span></td>
+      <td>${r.riskyPct}%</td>
+      <td>$${r.finalBalance.toLocaleString()}</td>
+      <td>${r.topDeck}</td>
+      <td>${parseCell}</td>
+      <td style="font-size:11px;color:#999;">${r.model}</td>
+      <td style="font-size:11px;color:#999;">${r.temperature}</td>
+    </tr>`;
+  }).join('');
+
+  renderCharts(byProfile);
+}
+
+let chartRisky, chartBalance;
+function renderCharts(byProfile) {
+  const labels = Object.keys(byProfile);
+  const colors = { neutral: '#2d6a4f', manic: '#c0392b', depressive: '#2c5282', custom: '#6b3fa0' };
+  const bgColors = labels.map(n => colors[byProfile[n].type] || '#999');
+
+  const riskyData = labels.map(n => Math.round(byProfile[n].runs.reduce((s,r)=>s+r.riskyPct,0)/byProfile[n].runs.length));
+  const balData = labels.map(n => Math.round(byProfile[n].runs.reduce((s,r)=>s+r.finalBalance,0)/byProfile[n].runs.length));
+
+  if (chartRisky) chartRisky.destroy();
+  if (chartBalance) chartBalance.destroy();
+
+  const opts = (yLabel) => ({
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, title: { display: true, text: yLabel, font: { size: 11 } } },
+      x: { ticks: { font: { size: 12 } } }
+    }
+  });
+
+  chartRisky = new Chart(document.getElementById('chart-risky'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: riskyData, backgroundColor: bgColors, borderRadius: 6 }] },
+    options: opts('Average risky choice %')
+  });
+
+  chartBalance = new Chart(document.getElementById('chart-balance'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: balData, backgroundColor: bgColors, borderRadius: 6 }] },
+    options: opts('Average final balance ($)')
+  });
+}
+
+function clearResults() {
+  if (!confirm('Clear all results?')) return;
+  results = [];
+  localStorage.setItem('igt_results_v2', JSON.stringify(results));
+  renderResults();
+}
+
+// ────────────────────────────────────────────────────────────────
+// EXPORTS
+// ────────────────────────────────────────────────────────────────
+function exportCSV() {
+  if (results.length === 0) { alert('No results yet.'); return; }
+  const headers = ['Run','Profile','Type','Risky %','Final Balance','Top Deck','Parse Fails','Soft Parses','Model','Temperature','Scratchpad','History Mode','Engine','Timestamp'];
+  const rows = results.map((r, i) => [
+    i+1, r.profileName, r.profileType, r.riskyPct, r.finalBalance,
+    r.topDeck, r.parseFails || 0, r.softParses || 0, r.model, r.temperature,
+    r.scratchpad ? 'yes' : 'no', r.historyMode || 'narrative', r.engineVersion || 'v1', r.timestamp
+  ]);
+  const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+  downloadFile(csv, `igt_results_${new Date().toISOString().slice(0,10)}.csv`, 'text/csv');
+}
+
+function exportRawResponses() {
+  if (lastRunRawLog.length === 0) { alert('No raw responses recorded.'); return; }
+  const jsonl = lastRunRawLog.map(e => JSON.stringify(e)).join('\n');
+  downloadFile(jsonl, `igt_raw_responses_${new Date().toISOString().slice(0,10)}.jsonl`, 'application/jsonl');
+}
+
+function downloadFile(content, filename, type) {
+  const blob = new Blob([content], { type });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+// ────────────────────────────────────────────────────────────────
+// UI
+// ────────────────────────────────────────────────────────────────
+function updateRunSummary() {
+  const model = document.getElementById('s-model').value;
+  const runs = document.getElementById('s-runs').value;
+  const trials = document.getElementById('s-trials').value;
+  const temp = document.getElementById('s-temp').value;
+  const scratchpad = document.getElementById('s-scratchpad').checked;
+  const total = profiles.length * runs;
+  document.getElementById('run-summary').innerHTML = `
+    Profiles: <strong>${profiles.length}</strong> | Runs: <strong>${runs}</strong> | Trials: <strong>${trials}</strong> | Model: <strong>${model}</strong> | Temp: <strong>${temp}</strong> | Scratchpad: <strong>${scratchpad ? 'ON' : 'OFF'}</strong><br>
+    <span style="color:#6c8ebf;">Total: ${total} simulations. Sequential execution. ETA: ${Math.round(total * trials / 100)}–${Math.round(total * trials / 50)} minutes.</span>
+  `;
+}
+
+function showTab(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  const tabs = ['profiles','settings','run','results','help'];
+  document.querySelectorAll('.nav-tab').forEach((t, i) => {
+    if (tabs[i] === id) t.classList.add('active');
+  });
+  if (id === 'run') updateRunSummary();
+  if (id === 'results') renderResults();
+}
+
+renderProfiles();
+renderResults();
+</script>
+</body>
+</html>
